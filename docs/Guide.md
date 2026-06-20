@@ -5,6 +5,41 @@ Course: `UCCD3243 Server-Side Web Applications Development`
 Current development path: `C:\xampp\htdocs\student-routine-organizer`  
 Local URL: `http://localhost/student-routine-organizer/`
 
+## Codex Prompt For Automatic Setup
+
+If you do not want to do Section 0 manually, open Codex on your computer and paste the prompt below. This assumes VS Code is already installed.
+
+```text
+I need you to set up my UCCD3243 Student Routine Organizer project on this Windows PC.
+
+Please do the full local setup for me:
+
+1. Check whether XAMPP is installed at C:\xampp.
+2. If XAMPP is not installed, install XAMPP for Windows from the official Apache Friends source.
+3. Make sure Apache, PHP, MySQL/MariaDB, and phpMyAdmin are available.
+4. Start Apache and MySQL.
+5. Check whether Git is installed.
+6. If Git is not installed, install Git for Windows from the official Git website.
+7. Clone this GitHub repository into C:\xampp\htdocs:
+   https://github.com/Benliew0928/student-routine-organizer.git
+8. The final project path must be:
+   C:\xampp\htdocs\student-routine-organizer
+9. Import the database file into MySQL/phpMyAdmin:
+   C:\xampp\htdocs\student-routine-organizer\database\student_routine_organizer.sql
+10. Verify these pages work:
+   http://localhost/
+   http://localhost/phpmyadmin/
+   http://localhost/student-routine-organizer/
+11. Verify login works using:
+   Student: student@example.com / password123
+   Admin: admin@example.com / admin123
+12. Tell me exactly what was installed, what was cloned, whether the database imported successfully, and any errors I need to fix.
+
+Do not create a new project from scratch. Use the GitHub repo above as the source of truth.
+```
+
+After Codex finishes, continue from `Section 3. Test Accounts` to learn how to test the website yourself.
+
 ## 0. First-Time Setup For Teammates With A New Computer
 
 Read this section if you have not installed anything yet. After completing this section, continue with `How To Run The Website Locally`.
@@ -17,9 +52,9 @@ Minimum required:
 |---|---|---|
 | XAMPP | Provides Apache, PHP, MySQL/MariaDB, and phpMyAdmin | Yes |
 | Visual Studio Code | Code editor for PHP, HTML, CSS, JS, and SQL files | Recommended |
-| Git | Version control and easier team file sharing | Optional but recommended |
+| Git | Used to clone the GitHub project into XAMPP and get future updates | Yes |
 
-The assignment specifically mentions XAMPP and MySQL phpMyAdmin, so XAMPP is the most important installation.
+The assignment specifically mentions XAMPP and MySQL phpMyAdmin, so XAMPP is the most important installation. Git is also required for this guide because teammates will clone the project from GitHub instead of manually copying files.
 
 ### 0.2 Official Download Links
 
@@ -29,7 +64,7 @@ Use official links when possible. If the lecturer or school portal provides a sp
 |---|---|---|
 | XAMPP | https://www.apachefriends.org/download.html | Download the Windows version. XAMPP includes Apache, MariaDB, PHP, and phpMyAdmin. |
 | Visual Studio Code | https://code.visualstudio.com/download | Download the Windows User Installer or System Installer. |
-| Git for Windows | https://git-scm.com/download/win | Optional, useful if the team uses GitHub or Git for sharing code. |
+| Git for Windows | https://git-scm.com/download/win | Required for cloning the project from GitHub. |
 | phpMyAdmin import/export guide | https://docs.phpmyadmin.net/en/latest/import_export.html | Useful when importing or exporting the `.sql` database file. |
 | PHP manual | https://www.php.net/manual/en/ | Useful when checking PHP functions such as `password_hash()`, `mysqli`, and sessions. |
 | MySQL documentation | https://dev.mysql.com/doc/ | Useful for SQL syntax and database concepts. |
@@ -146,7 +181,7 @@ These extensions are optional, but they make development easier.
 
 ### 0.6 Install Git For Windows
 
-This is optional unless the team wants to use GitHub or Git to share code.
+Git is required because teammates will download the project using `git clone`.
 
 1. Open:
 
@@ -168,29 +203,63 @@ Expected result:
 
 - Git version is displayed.
 
-### 0.7 Put The Project Into XAMPP
+### 0.7 Clone The Project Into XAMPP
 
-After XAMPP is installed, the project folder must be placed inside:
+After XAMPP and Git are installed, clone the project from GitHub into XAMPP's `htdocs` folder.
+
+Project GitHub page:
 
 ```text
-C:\xampp\htdocs
+https://github.com/Benliew0928/student-routine-organizer
 ```
 
-Final project path should be:
+Git clone URL:
+
+```text
+https://github.com/Benliew0928/student-routine-organizer.git
+```
+
+Open PowerShell, Command Prompt, Git Bash, or VS Code terminal.
+
+First go to the XAMPP web root:
+
+```bash
+cd C:\xampp\htdocs
+```
+
+Then clone the project:
+
+```bash
+git clone https://github.com/Benliew0928/student-routine-organizer.git
+```
+
+After cloning, the final project path should be:
 
 ```text
 C:\xampp\htdocs\student-routine-organizer
 ```
 
-If your teammate receives the project as a zip:
-
-1. Extract the zip.
-2. Find the folder named `student-routine-organizer`.
-3. Copy that folder into `C:\xampp\htdocs`.
-4. Confirm this file exists:
+Confirm this file exists:
 
 ```text
 C:\xampp\htdocs\student-routine-organizer\index.php
+```
+
+Then open the project folder in VS Code:
+
+```text
+C:\xampp\htdocs\student-routine-organizer
+```
+
+Important: do not clone the project into another folder such as Desktop or Downloads if you want XAMPP to run it directly. The folder must be inside `C:\xampp\htdocs`.
+
+If the folder `C:\xampp\htdocs\student-routine-organizer` already exists, do not clone into it again. Ask the team whether to pull updates inside the existing folder or replace the folder with a fresh clone.
+
+To get latest changes later, run:
+
+```bash
+cd C:\xampp\htdocs\student-routine-organizer
+git pull
 ```
 
 ### 0.8 Import The Database
