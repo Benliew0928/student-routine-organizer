@@ -14,8 +14,9 @@ require __DIR__ . '/../../includes/header.php';
     <a class="button primary" href="<?= BASE_URL; ?>/modules/money/create.php">Add Transaction</a>
 </section>
 
-<section class="panel">
-    <p class="muted">No money records are connected yet.</p>
+<section class="panel empty-state">
+    <h2>No transactions yet</h2>
+    <p class="muted">Add income and expense records later to see balance, category, and date summaries in this space.</p>
 </section>
 
 <?php require __DIR__ . '/../../includes/footer.php'; ?>

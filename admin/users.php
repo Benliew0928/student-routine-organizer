@@ -28,8 +28,9 @@ require __DIR__ . '/../includes/header.php';
 <?php if ($usersError): ?>
     <div class="alert alert-error"><?= escapeOutput($usersError); ?></div>
 <?php elseif (!$users): ?>
-    <section class="panel">
-        <p class="muted">No registered users found.</p>
+    <section class="panel empty-state">
+        <h2>No registered users found</h2>
+        <p class="muted">New student and admin accounts will appear here after registration or database import.</p>
     </section>
 <?php else: ?>
     <section class="panel table-panel">

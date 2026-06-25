@@ -14,8 +14,9 @@ require __DIR__ . '/../../includes/header.php';
     <a class="button primary" href="<?= BASE_URL; ?>/modules/exercise/create.php">Add Exercise</a>
 </section>
 
-<section class="panel">
-    <p class="muted">No exercise records are connected yet.</p>
+<section class="panel empty-state">
+    <h2>No exercise records yet</h2>
+    <p class="muted">Start with a workout session, then this page can show totals, recent activity, and progress over time.</p>
 </section>
 
 <?php require __DIR__ . '/../../includes/footer.php'; ?>

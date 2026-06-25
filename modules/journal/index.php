@@ -14,8 +14,9 @@ require __DIR__ . '/../../includes/header.php';
     <a class="button primary" href="<?= BASE_URL; ?>/modules/journal/create.php">Add Journal Entry</a>
 </section>
 
-<section class="panel">
-    <p class="muted">No journal entries are connected yet.</p>
+<section class="panel empty-state">
+    <h2>No journal entries yet</h2>
+    <p class="muted">Once journal CRUD is implemented, entries can show mood, date, title, and a short preview here.</p>
 </section>
 
 <?php require __DIR__ . '/../../includes/footer.php'; ?>

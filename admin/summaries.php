@@ -29,7 +29,7 @@ try {
         [
             'module' => 'Habit Tracker',
             'records' => (int) $connection->query('SELECT COUNT(*) AS total FROM habit_records')->fetch_assoc()['total'],
-            'detail' => (int) $connection->query("SELECT COALESCE(SUM(CASE WHEN completion_status = 'completed' THEN 1 ELSE 0 END), 0) AS total FROM habit_records")->fetch_assoc()['total'] . ' completed habits',
+            'detail' => (int) $connection->query("SELECT COALESCE(SUM(CASE WHEN completion_status = 'completed' THEN 1 ELSE 0 END), 0) AS total FROM habit_records")->fetch_assoc()['total'] . ' completed habits across ' . (int) $connection->query('SELECT COUNT(DISTINCT category) AS total FROM habit_records')->fetch_assoc()['total'] . ' categories',
         ],
     ];
 } catch (Throwable $exception) {

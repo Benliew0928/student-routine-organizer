@@ -1,8 +1,52 @@
 <?php
 require __DIR__ . '/../../config/app.php';
+require __DIR__ . '/../../config/database.php';
 require __DIR__ . '/../../includes/auth.php';
+require __DIR__ . '/../../includes/validation.php';
+require __DIR__ . '/habit_helpers.php';
 
 requireLogin();
+
+$userId = (int) $_SESSION['user_id'];
+$data = habitDefaultFormData();
+$errors = [];
+$pageError = null;
+
+try {
+    $connection = getDatabaseConnection();
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $data = habitDataFromRequest($_POST);
+
+        if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+            $errors[] = 'Your session token expired. Please try again.';
+        }
+
+        $errors = array_merge($errors, habitValidateData($connection, $userId, $data));
+
+        if (!$errors) {
+            $stmt = $connection->prepare('INSERT INTO habit_records (user_id, habit_name, category, target_frequency, completion_status, priority, habit_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            $stmt->bind_param(
+                'isssssss',
+                $userId,
+                $data['habit_name'],
+                $data['category'],
+                $data['target_frequency'],
+                $data['completion_status'],
+                $data['priority'],
+                $data['habit_date'],
+                $data['notes']
+            );
+            $stmt->execute();
+
+            setFlash('success', 'Habit record added successfully.');
+            header('Location: ' . BASE_URL . '/modules/habits/index.php');
+            exit;
+        }
+    }
+} catch (Throwable $exception) {
+    $pageError = 'Habit creation is unavailable right now. Please check the database setup.';
+}
 
 $pageTitle = 'Add Habit';
 require __DIR__ . '/../../includes/header.php';
@@ -10,7 +54,61 @@ require __DIR__ . '/../../includes/header.php';
 
 <section class="panel narrow">
     <h1>Add Habit</h1>
-    <p class="muted">Habit create logic will be implemented in Phase 8.</p>
+    <p class="muted">Create a routine record with status, priority, category, and notes.</p>
+
+    <?php if ($pageError): ?>
+        <div class="alert alert-error"><?= escapeOutput($pageError); ?></div>
+    <?php endif; ?>
+
+    <?php if ($errors): ?>
+        <div class="alert alert-error">
+            <?php foreach ($errors as $error): ?>
+                <p><?= escapeOutput($error); ?></p>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <form method="post" action="<?= BASE_URL; ?>/modules/habits/create.php">
+        <?= csrfInput(); ?>
+
+        <label for="habit_name">Habit Name</label>
+        <input id="habit_name" name="habit_name" type="text" maxlength="100" value="<?= escapeOutput($data['habit_name']); ?>" required>
+
+        <label for="category">Category</label>
+        <input id="category" name="category" type="text" maxlength="60" value="<?= escapeOutput($data['category']); ?>" required>
+
+        <label for="target_frequency">Target Frequency</label>
+        <select id="target_frequency" name="target_frequency" required>
+            <?php foreach (habitFrequencyOptions() as $value => $label): ?>
+                <option value="<?= escapeOutput($value); ?>" <?= $data['target_frequency'] === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option>
+            <?php endforeach; ?>
+        </select>
+
+        <label for="completion_status">Completion Status</label>
+        <select id="completion_status" name="completion_status" required>
+            <?php foreach (habitStatusOptions() as $value => $label): ?>
+                <option value="<?= escapeOutput($value); ?>" <?= $data['completion_status'] === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option>
+            <?php endforeach; ?>
+        </select>
+
+        <label for="priority">Priority</label>
+        <select id="priority" name="priority" required>
+            <?php foreach (habitPriorityOptions() as $value => $label): ?>
+                <option value="<?= escapeOutput($value); ?>" <?= $data['priority'] === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option>
+            <?php endforeach; ?>
+        </select>
+
+        <label for="habit_date">Habit Date</label>
+        <input id="habit_date" name="habit_date" type="date" value="<?= escapeOutput($data['habit_date']); ?>" required>
+
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" maxlength="255"><?= escapeOutput($data['notes']); ?></textarea>
+
+        <div class="button-row">
+            <button class="button primary" type="submit">Save Habit</button>
+            <a class="button" href="<?= BASE_URL; ?>/modules/habits/index.php">Cancel</a>
+        </div>
+    </form>
 </section>
 
 <?php require __DIR__ . '/../../includes/footer.php'; ?>

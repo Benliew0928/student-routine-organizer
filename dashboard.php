@@ -16,6 +16,7 @@ $summary = [
     'money_balance' => 0.00,
     'habit_count' => 0,
     'habit_completed' => 0,
+    'habit_percentage' => 0,
 ];
 $dashboardError = null;
 $userId = (int) $_SESSION['user_id'];
@@ -58,6 +59,7 @@ try {
     $habit = $stmt->get_result()->fetch_assoc();
     $summary['habit_count'] = (int) $habit['record_count'];
     $summary['habit_completed'] = (int) $habit['completed_count'];
+    $summary['habit_percentage'] = $summary['habit_count'] > 0 ? (int) round(($summary['habit_completed'] / $summary['habit_count']) * 100) : 0;
 } catch (Throwable $exception) {
     $dashboardError = 'Dashboard summaries are unavailable right now.';
 }
@@ -95,7 +97,7 @@ require __DIR__ . '/includes/header.php';
     <article class="summary-card">
         <span class="summary-label">Habits Completed</span>
         <strong><?= number_format($summary['habit_completed']); ?> / <?= number_format($summary['habit_count']); ?></strong>
-        <p>Total habit records tracked</p>
+        <p><?= number_format($summary['habit_percentage']); ?>% completion rate</p>
     </article>
 </section>
 

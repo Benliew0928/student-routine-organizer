@@ -76,16 +76,22 @@ CREATE TABLE habit_records (
   habit_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   habit_name VARCHAR(100) NOT NULL,
+  category VARCHAR(60) NOT NULL DEFAULT 'General',
   target_frequency VARCHAR(50) NOT NULL,
   completion_status ENUM('pending', 'completed', 'missed') NOT NULL DEFAULT 'pending',
+  priority ENUM('low', 'medium', 'high') NOT NULL DEFAULT 'medium',
   habit_date DATE NOT NULL,
+  notes VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_habit_user
     FOREIGN KEY (user_id) REFERENCES users(user_id)
     ON DELETE CASCADE,
   INDEX idx_habit_user_date (user_id, habit_date),
-  INDEX idx_habit_status (completion_status)
+  INDEX idx_habit_user_status_date (user_id, completion_status, habit_date),
+  INDEX idx_habit_user_name_date (user_id, habit_name, habit_date),
+  INDEX idx_habit_status (completion_status),
+  UNIQUE KEY uq_habit_user_name_date (user_id, habit_name, habit_date)
 );
 
 -- Sample users for later testing.
@@ -93,4 +99,3 @@ CREATE TABLE habit_records (
 -- Plain text reference for coursework testing only:
 -- admin@example.com / admin123
 -- student@example.com / password123
-
