@@ -210,4 +210,44 @@ test('journal delete page requires post csrf and scoped deletion', function (): 
     assertSameValue(false, str_contains($source, 'will be implemented'));
 });
 
+test('journal javascript supports templates counts and scoped drafts', function (): void {
+    $source = file_get_contents(__DIR__ . '/../assets/js/app.js');
+
+    assertTrueValue(is_string($source));
+    assertTrueValue(str_contains($source, '[data-template-picker]'));
+    assertTrueValue(str_contains($source, '[data-journal-editor]'));
+    assertTrueValue(str_contains($source, '[data-journal-draft-restore]'));
+    assertTrueValue(str_contains($source, '[data-journal-draft-discard]'));
+    assertTrueValue(str_contains($source, '[data-journal-saved]'));
+    assertTrueValue(str_contains($source, 'localStorage.setItem'));
+    assertTrueValue(str_contains($source, 'localStorage.removeItem'));
+    assertTrueValue(str_contains($source, 'window.confirm'));
+});
+
+test('logout link exposes the current user for scoped draft cleanup', function (): void {
+    $source = file_get_contents(__DIR__ . '/../includes/navbar.php');
+
+    assertTrueValue(is_string($source));
+    assertTrueValue(str_contains($source, 'data-journal-logout'));
+    assertTrueValue(str_contains($source, 'data-journal-user'));
+});
+
+test('journal stylesheet defines all major responsive components', function (): void {
+    $source = file_get_contents(__DIR__ . '/../assets/css/style.css');
+
+    assertTrueValue(is_string($source));
+    foreach ([
+        '.journal-hero',
+        '.journal-filter-form',
+        '.journal-card-grid',
+        '.journal-reading-page',
+        '.journal-template-grid',
+        '.journal-editor-panel',
+        '.journal-draft-banner',
+        '.journal-delete-panel',
+    ] as $selector) {
+        assertTrueValue(str_contains($source, $selector), 'Missing CSS selector ' . $selector);
+    }
+});
+
 finishTests();
