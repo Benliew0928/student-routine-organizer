@@ -17,7 +17,11 @@ $navItems = [
             <?php if (currentUserRole() === 'admin'): ?>
                 <a href="<?= BASE_URL; ?>/admin/dashboard.php">Admin</a>
             <?php endif; ?>
-            <a href="<?= BASE_URL; ?>/logout.php">Logout</a>
+            <a
+                href="<?= BASE_URL; ?>/logout.php"
+                data-journal-logout
+                data-journal-user="<?= (int) ($_SESSION['user_id'] ?? 0); ?>"
+            >Logout</a>
         <?php else: ?>
             <a href="<?= BASE_URL; ?>/login.php">Login</a>
             <a href="<?= BASE_URL; ?>/register.php">Register</a>
