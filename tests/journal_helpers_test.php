@@ -151,4 +151,22 @@ test('return query omits defaults and keeps active filters', function (): void {
     assertSameValue('search=focus&date_to=2026-07-31', $query);
 });
 
+test('journal list page uses filters instead of placeholder content', function (): void {
+    $source = file_get_contents(__DIR__ . '/../modules/journal/index.php');
+
+    assertTrueValue(is_string($source));
+    assertTrueValue(str_contains($source, 'journalFilterQuery('));
+    assertSameValue(false, str_contains($source, 'will be implemented'));
+});
+
+test('journal detail page enforces owned loading', function (): void {
+    $path = __DIR__ . '/../modules/journal/view.php';
+    assertTrueValue(is_file($path), 'Expected modules/journal/view.php to exist.');
+    $source = file_get_contents($path);
+
+    assertTrueValue(is_string($source));
+    assertTrueValue(str_contains($source, 'journalLoadForUser('));
+    assertTrueValue(str_contains($source, 'nl2br(escapeOutput('));
+});
+
 finishTests();
