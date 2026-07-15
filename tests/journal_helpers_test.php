@@ -188,4 +188,26 @@ test('journal detail page can signal successful draft cleanup', function (): voi
     assertTrueValue(str_contains($source, 'data-journal-saved'));
 });
 
+test('journal edit page verifies ownership csrf and scoped update', function (): void {
+    $source = file_get_contents(__DIR__ . '/../modules/journal/edit.php');
+
+    assertTrueValue(is_string($source));
+    assertTrueValue(str_contains($source, 'journalLoadForUser('));
+    assertTrueValue(str_contains($source, 'verifyCsrfToken('));
+    assertTrueValue(str_contains($source, 'UPDATE journal_entries'));
+    assertTrueValue(str_contains($source, 'WHERE journal_id = ? AND user_id = ?'));
+    assertSameValue(false, str_contains($source, 'will be implemented'));
+});
+
+test('journal delete page requires post csrf and scoped deletion', function (): void {
+    $source = file_get_contents(__DIR__ . '/../modules/journal/delete.php');
+
+    assertTrueValue(is_string($source));
+    assertTrueValue(str_contains($source, 'journalLoadForUser('));
+    assertTrueValue(str_contains($source, "REQUEST_METHOD'] === 'POST'"));
+    assertTrueValue(str_contains($source, 'verifyCsrfToken('));
+    assertTrueValue(str_contains($source, 'DELETE FROM journal_entries WHERE journal_id = ? AND user_id = ?'));
+    assertSameValue(false, str_contains($source, 'will be implemented'));
+});
+
 finishTests();
