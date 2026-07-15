@@ -169,4 +169,23 @@ test('journal detail page enforces owned loading', function (): void {
     assertTrueValue(str_contains($source, 'nl2br(escapeOutput('));
 });
 
+test('journal create page has secure template-aware form workflow', function (): void {
+    $source = file_get_contents(__DIR__ . '/../modules/journal/create.php');
+
+    assertTrueValue(is_string($source));
+    assertTrueValue(str_contains($source, 'verifyCsrfToken('));
+    assertTrueValue(str_contains($source, 'INSERT INTO journal_entries'));
+    assertTrueValue(str_contains($source, 'journalTemplateOptions('));
+    assertTrueValue(str_contains($source, 'data-journal-editor'));
+    assertTrueValue(str_contains($source, 'data-draft-key'));
+    assertSameValue(false, str_contains($source, 'will be implemented'));
+});
+
+test('journal detail page can signal successful draft cleanup', function (): void {
+    $source = file_get_contents(__DIR__ . '/../modules/journal/view.php');
+
+    assertTrueValue(is_string($source));
+    assertTrueValue(str_contains($source, 'data-journal-saved'));
+});
+
 finishTests();
