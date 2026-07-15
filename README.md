@@ -2,6 +2,7 @@ Student Routine Organizer
 
 Current Phase:
 - Phase 4 dashboard summaries completed.
+- Phase 6 Diary Journal completed for Member 2.
 - Phase 8 Habit Tracker completed for Member 4.
 
 Local Requirements:
@@ -10,7 +11,13 @@ Local Requirements:
 - MySQL running
 
 Local URL:
-http://localhost/student-routine-organizer/
+http://localhost/<checkout-folder>/
+
+Examples:
+- http://localhost/student-routine-organizer/
+- http://localhost/Server-Side/
+
+The application detects the checkout folder automatically.
 
 Database:
 student_routine_organizer
@@ -45,5 +52,14 @@ Implemented So Far:
 - Admin dashboard totals
 - Admin registered users listing
 - Admin system summaries
+- Complete Diary Journal CRUD with per-user ownership
+- Journal detail reading view, free-text moods, search, mood/date filters, and sorting
+- Blank, Daily Reflection, Gratitude, Mood Check-in, and Study Notes templates
+- Journal CSRF protection, validation, safe output, mood suggestions, live counts, and browser draft recovery
 - Enhanced Habit Tracker CRUD
 - Habit filters, sorting, quick status updates, progress summaries, best streak, CSV export, and CSRF-protected forms
+
+Journal Verification:
+- `C:\xampp\php\php.exe tests\app_config_test.php`
+- `C:\xampp\php\php.exe tests\journal_helpers_test.php`
+- `C:\xampp\php\php.exe tests\journal_database_test.php`

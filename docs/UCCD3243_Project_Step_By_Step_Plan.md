@@ -32,7 +32,7 @@ Update the tracking tables at the end of every work session.
 | Phase 3 | Build shared database and authentication | Solo/User | Done | 2026-06-18 | Database imported; registration, login, logout, sessions, cookie usage, student/admin redirects, and protected pages verified |
 | Phase 4 | Build student and admin dashboards | Solo/User | Done | 2026-06-19 | Student summaries, admin totals, registered users page, and system summaries page implemented and tested |
 | Phase 5 | Build Exercise Tracker | Member 1 | Not Started |  |  |
-| Phase 6 | Build Diary Journal | Member 2 | Not Started |  |  |
+| Phase 6 | Build Diary Journal | Member 2 | Done | 2026-07-16 | Secure CRUD, owned detail view, templates, search, mood/date filters, sorting, mood suggestions, draft recovery, responsive UI, and automated/live verification completed |
 | Phase 7 | Build Money Tracker | Member 3 | Not Started |  |  |
 | Phase 8 | Build Habit Tracker | Member 4 | Done | 2026-06-23 | Enhanced CRUD, filters, sorting, quick status updates, progress summaries, best streak, CSV export, CSRF protection, and sample data added |
 | Phase 9 | Integrate all modules | Group | Not Started |  |  |
@@ -48,7 +48,7 @@ Update the tracking tables at the end of every work session.
 | Member | Module | Main Pages | Status | Current Issue | Review By |
 |---|---|---|---|---|---|
 | Member 1 | Exercise Tracker | Add, View, Edit, Delete | Not Started |  |  |
-| Member 2 | Diary Journal | Add, View, Edit, Delete | Not Started |  |  |
+| Member 2 | Diary Journal | Add, View, Edit, Delete | Done | Ready for group review and demonstration screenshots |  |
 | Member 3 | Money Tracker | Add, View, Edit, Delete | Not Started |  |  |
 | Member 4 | Habit Tracker | Add, View, Edit, Delete | Done | Ready for group review and browser/database testing |  |
 
@@ -64,6 +64,7 @@ Use this small table whenever you start working.
 | 2026-06-18 | Codex | Complete Phase 3 database and authentication | Imported MySQL database, added seed admin/student accounts, implemented registration/login/logout, protected pages, and verified auth redirects | Move to Phase 4: connect student/admin dashboard summaries |
 | 2026-06-19 | Codex | Complete Phase 4 dashboards and comprehensive check | Implemented student/admin summaries, users table, system summaries, table/card styling; verified syntax, auth, validation, redirects, and dashboard calculations | Move to Phase 5: build Exercise Tracker CRUD |
 | 2026-06-23 | Codex | Complete Member 4 Habit Tracker | Built enhanced habit CRUD, validation, ownership checks, filters, sorting, summaries, streaks, quick status updates, CSV export, CSRF protection, migration SQL, and sample data; PHP syntax check passed | Start XAMPP Apache/MySQL, import `database/habit_tracker_migration.sql` if needed, then capture report screenshots |
+| 2026-07-16 | Codex | Complete Member 2 Diary Journal | Built secure per-user CRUD, full reading view, five writing templates, free-text mood suggestions, search/filter/sort, validation, CSRF, safe output, draft recovery, responsive UI, automated tests, and live two-user browser verification | Merge the feature branch, then capture report and presentation screenshots |
 |  |  |  |  |  |
 |  |  |  |  |  |
 
@@ -335,24 +336,30 @@ Goal: Complete full CRUD for journal entries.
 
 ### Build Steps
 
-- [ ] Create Journal list page.
-- [ ] Query only current user's journal entries.
-- [ ] Display title, mood, date, and preview.
-- [ ] Add empty-state message when no entries exist.
-- [ ] Create Add Journal form.
-- [ ] Validate title is not empty.
-- [ ] Validate content is not empty.
-- [ ] Validate mood status is selected.
-- [ ] Validate date is not empty.
-- [ ] Insert record with current `user_id`.
-- [ ] Create Edit Journal form.
-- [ ] Load record using both `journal_id` and `user_id`.
-- [ ] Update record after validation.
-- [ ] Create Delete Journal function.
-- [ ] Confirm record belongs to current user before deleting.
-- [ ] Show success/error messages.
-- [ ] Add optional search by title/content.
-- [ ] Add optional filter by mood.
+- [x] Create Journal list page.
+- [x] Query only current user's journal entries.
+- [x] Display title, mood, date, and preview.
+- [x] Add empty-state message when no entries exist.
+- [x] Create Add Journal form.
+- [x] Validate title is not empty.
+- [x] Validate content is not empty.
+- [x] Validate mood status is entered.
+- [x] Validate date is not empty and is a real calendar date.
+- [x] Insert record with current `user_id`.
+- [x] Create complete Journal detail view.
+- [x] Create Edit Journal form.
+- [x] Load record using both `journal_id` and `user_id`.
+- [x] Update record after validation.
+- [x] Create Delete Journal confirmation and POST action.
+- [x] Confirm record belongs to current user before deleting.
+- [x] Protect create, edit, and delete with CSRF tokens.
+- [x] Show success/error messages.
+- [x] Add search by title/content.
+- [x] Add filters by mood and date range.
+- [x] Add newest/oldest sorting.
+- [x] Add five built-in writing templates and free-text mood suggestions.
+- [x] Add live word/character counts and user-scoped draft recovery.
+- [x] Verify safe output, two-user isolation, responsive layout, and dashboard integration.
 
 ### Done Criteria
 
@@ -530,13 +537,13 @@ Choose features that are easy to explain and unlikely to break the system.
 
 ### Recommended Optional Features
 
-- [ ] Search journal by title/content.
+- [x] Search journal by title/content.
 - [ ] Filter money records by income/expense.
 - [ ] Filter exercise by activity type.
 - [ ] Filter habits by completion status.
-- [ ] Sort records by date.
-- [ ] Show dashboard summaries.
-- [ ] Show admin system summaries.
+- [x] Sort Journal and Habit records by date.
+- [x] Show dashboard summaries.
+- [x] Show admin system summaries.
 - [ ] Add simple pagination if many records exist.
 - [ ] Add theme preference using cookie.
 - [ ] Add CSV export for one or more modules.
