@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 const APP_NAME = 'Student Routine Organizer';
 
+date_default_timezone_set('Asia/Kuala_Lumpur');
+
 function detectBaseUrl(string $scriptName, ?string $projectDirectory = null): string
 {
     $path = trim(str_replace('\\', '/', $scriptName), '/');

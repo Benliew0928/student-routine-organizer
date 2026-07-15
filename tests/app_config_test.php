@@ -23,4 +23,8 @@ test('does not mistake nested route for project folder at document root', functi
     assertSameValue('', detectBaseUrl('/modules/journal/index.php', 'diary-journal'));
 });
 
+test('uses the assignment local timezone', function (): void {
+    assertSameValue('Asia/Kuala_Lumpur', date_default_timezone_get());
+});
+
 finishTests();
