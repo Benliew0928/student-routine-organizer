@@ -507,7 +507,8 @@ http://localhost/student-routine-organizer/modules/habits/index.php
 Expected result:
 
 - Each page loads.
-- Each page says its CRUD logic will be implemented in later phases.
+- Exercise and Habits show completed module interfaces.
+- Journal and Money may still show placeholder messages until their phases are implemented.
 
 ### Test 5: Logout
 
@@ -594,6 +595,7 @@ student-routine-organizer/
       create.php
       edit.php
       delete.php
+      exercise_helpers.php
     journal/
       index.php
       create.php

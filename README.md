@@ -1,7 +1,7 @@
 Student Routine Organizer
 
 Current Phase:
-- Phase 4 dashboard summaries completed.
+- Phase 5 Exercise Tracker completed for Member 1.
 - Phase 8 Habit Tracker completed for Member 4.
 
 Local Requirements:
@@ -45,5 +45,7 @@ Implemented So Far:
 - Admin dashboard totals
 - Admin registered users listing
 - Admin system summaries
+- Exercise Tracker CRUD
+- Exercise summaries, filters, sorting, CSV export, and CSRF-protected forms
 - Enhanced Habit Tracker CRUD
 - Habit filters, sorting, quick status updates, progress summaries, best streak, CSV export, and CSRF-protected forms

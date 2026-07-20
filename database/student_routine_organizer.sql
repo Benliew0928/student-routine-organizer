@@ -100,6 +100,12 @@ INSERT INTO users (full_name, email, password_hash, role) VALUES
 ('System Admin', 'admin@example.com', '$2y$10$FyJDw1My5DclqVsQQIUlQen.oego9dFKowVG7cF2sDegxSGYHsIhC', 'admin'),
 ('Sample Student', 'student@example.com', '$2y$10$I1CLDdxlAe1CPh3Si0gBYeszJkDqsiF6OLYeF2cNwBaGzgNXFJpxC', 'student');
 
+INSERT INTO exercise_records (user_id, activity_type, duration_minutes, calories_burned, exercise_date, notes)
+SELECT user_id, 'Jogging', 35, 280, '2026-07-14', 'Morning jog around campus.' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Cycling', 50, 420, '2026-07-16', 'Evening ride after class.' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Gym Session', 60, 510, '2026-07-18', 'Strength training and treadmill cooldown.' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Swimming', 40, 330, '2026-07-20', 'Easy laps for recovery.' FROM users WHERE email = 'student@example.com';
+
 INSERT INTO habit_records (user_id, habit_name, category, target_frequency, completion_status, priority, habit_date, notes)
 SELECT user_id, 'Morning Study Review', 'Study', 'Daily', 'completed', 'high', '2026-06-18', 'Reviewed lecture notes before class.' FROM users WHERE email = 'student@example.com'
 UNION ALL SELECT user_id, 'Morning Study Review', 'Study', 'Daily', 'completed', 'high', '2026-06-19', 'Completed revision for server-side topic.' FROM users WHERE email = 'student@example.com'
