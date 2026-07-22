@@ -6,135 +6,38 @@ require __DIR__ . '/../../includes/validation.php';
 require __DIR__ . '/habit_helpers.php';
 
 requireLogin();
-
 $userId = (int) $_SESSION['user_id'];
 $habitId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
-
-if (!$habitId) {
-    setFlash('error', 'Invalid habit record.');
-    header('Location: ' . BASE_URL . '/modules/habits/index.php');
-    exit;
-}
-
-$data = habitDefaultFormData();
+if (!$habitId) { setFlash('error', 'Invalid quest blueprint.'); header('Location: ' . BASE_URL . '/modules/habits/manage.php'); exit; }
 $errors = [];
 $pageError = null;
+$data = habitDefaultFormData();
 
 try {
     $connection = getDatabaseConnection();
     $habit = habitLoadForUser($connection, (int) $habitId, $userId);
-
-    if (!$habit) {
-        setFlash('error', 'Habit record was not found.');
-        header('Location: ' . BASE_URL . '/modules/habits/index.php');
-        exit;
-    }
-
-    $data = array_merge($data, [
-        'habit_name' => $habit['habit_name'],
-        'category' => $habit['category'],
-        'target_frequency' => $habit['target_frequency'],
-        'completion_status' => $habit['completion_status'],
-        'priority' => $habit['priority'],
-        'habit_date' => $habit['habit_date'],
-        'notes' => $habit['notes'] ?? '',
-    ]);
-
+    if (!$habit) { setFlash('error', 'Quest blueprint not found.'); header('Location: ' . BASE_URL . '/modules/habits/manage.php'); exit; }
+    $data = ['habit_name' => $habit['habit_name'], 'realm' => $habit['realm'], 'target_frequency' => $habit['target_frequency'], 'scheduled_days' => array_filter(explode(',', $habit['scheduled_days'])), 'preferred_time' => $habit['preferred_time'] ? substr($habit['preferred_time'], 0, 5) : '', 'duration_minutes' => $habit['duration_minutes'] ?? '', 'motivation' => $habit['motivation'] ?? '', 'priority' => $habit['priority']];
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = habitDataFromRequest($_POST);
-
-        if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            $errors[] = 'Your session token expired. Please try again.';
-        }
-
-        $errors = array_merge($errors, habitValidateData($connection, $userId, $data, (int) $habitId));
-
+        if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) { $errors[] = 'Your session token expired. Please try again.'; }
+        $errors = array_merge($errors, habitValidateData($data));
         if (!$errors) {
-            $stmt = $connection->prepare('UPDATE habit_records SET habit_name = ?, category = ?, target_frequency = ?, completion_status = ?, priority = ?, habit_date = ?, notes = ? WHERE habit_id = ? AND user_id = ?');
-            $stmt->bind_param(
-                'sssssssii',
-                $data['habit_name'],
-                $data['category'],
-                $data['target_frequency'],
-                $data['completion_status'],
-                $data['priority'],
-                $data['habit_date'],
-                $data['notes'],
-                $habitId,
-                $userId
-            );
+            $days = implode(',', $data['scheduled_days']); $time = $data['preferred_time'] !== '' ? $data['preferred_time'] . ':00' : null; $duration = $data['duration_minutes'] !== '' ? (int) $data['duration_minutes'] : null; $motivation = $data['motivation'] !== '' ? $data['motivation'] : null;
+            $stmt = $connection->prepare('UPDATE habits SET habit_name = ?, realm = ?, target_frequency = ?, scheduled_days = ?, preferred_time = ?, duration_minutes = ?, motivation = ?, priority = ? WHERE habit_id = ? AND user_id = ?');
+            $stmt->bind_param('sssssissii', $data['habit_name'], $data['realm'], $data['target_frequency'], $days, $time, $duration, $motivation, $data['priority'], $habitId, $userId);
             $stmt->execute();
-
-            setFlash('success', 'Habit record updated successfully.');
-            header('Location: ' . BASE_URL . '/modules/habits/index.php');
-            exit;
+            setFlash('success', 'Quest blueprint updated.'); header('Location: ' . BASE_URL . '/modules/habits/manage.php'); exit;
         }
     }
-} catch (Throwable $exception) {
-    $pageError = 'Habit editing is unavailable right now. Please check the database setup.';
-}
+} catch (Throwable $exception) { $pageError = 'Quest editing is unavailable right now. Please check the database setup.'; }
 
-$pageTitle = 'Edit Habit';
-require __DIR__ . '/../../includes/header.php';
+$pageTitle = 'Edit Quest'; require __DIR__ . '/../../includes/header.php';
 ?>
-
-<section class="panel narrow">
-    <h1>Edit Habit</h1>
-    <p class="muted">Update the habit details while keeping this record linked to your account.</p>
-
-    <?php if ($pageError): ?>
-        <div class="alert alert-error"><?= escapeOutput($pageError); ?></div>
-    <?php endif; ?>
-
-    <?php if ($errors): ?>
-        <div class="alert alert-error">
-            <?php foreach ($errors as $error): ?>
-                <p><?= escapeOutput($error); ?></p>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
-
-    <form method="post" action="<?= BASE_URL; ?>/modules/habits/edit.php?id=<?= (int) $habitId; ?>">
-        <?= csrfInput(); ?>
-
-        <label for="habit_name">Habit Name</label>
-        <input id="habit_name" name="habit_name" type="text" maxlength="100" value="<?= escapeOutput($data['habit_name']); ?>" required>
-
-        <label for="category">Category</label>
-        <input id="category" name="category" type="text" maxlength="60" value="<?= escapeOutput($data['category']); ?>" required>
-
-        <label for="target_frequency">Target Frequency</label>
-        <select id="target_frequency" name="target_frequency" required>
-            <?php foreach (habitFrequencyOptions() as $value => $label): ?>
-                <option value="<?= escapeOutput($value); ?>" <?= $data['target_frequency'] === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option>
-            <?php endforeach; ?>
-        </select>
-
-        <label for="completion_status">Completion Status</label>
-        <select id="completion_status" name="completion_status" required>
-            <?php foreach (habitStatusOptions() as $value => $label): ?>
-                <option value="<?= escapeOutput($value); ?>" <?= $data['completion_status'] === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option>
-            <?php endforeach; ?>
-        </select>
-
-        <label for="priority">Priority</label>
-        <select id="priority" name="priority" required>
-            <?php foreach (habitPriorityOptions() as $value => $label): ?>
-                <option value="<?= escapeOutput($value); ?>" <?= $data['priority'] === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option>
-            <?php endforeach; ?>
-        </select>
-
-        <label for="habit_date">Habit Date</label>
-        <input id="habit_date" name="habit_date" type="date" value="<?= escapeOutput($data['habit_date']); ?>" required>
-
-        <label for="notes">Notes</label>
-        <textarea id="notes" name="notes" maxlength="255"><?= escapeOutput($data['notes']); ?></textarea>
-
-        <div class="button-row">
-            <button class="button primary" type="submit">Save Changes</button>
-            <a class="button" href="<?= BASE_URL; ?>/modules/habits/index.php">Cancel</a>
-        </div>
-    </form>
-</section>
-
+<section class="blueprint-page" aria-labelledby="blueprintTitle"><header class="blueprint-hero"><a class="sanctuary-back-link" href="<?= BASE_URL; ?>/modules/habits/manage.php">← Back to blueprints</a><p class="sanctuary-kicker">Refine a quest blueprint</p><h1 id="blueprintTitle">Keep the promise realistic.</h1><p>Changes affect future scheduled quests. Existing trail entries remain part of your story.</p></header>
+<?php if ($pageError): ?><div class="alert alert-error"><?= escapeOutput($pageError); ?></div><?php endif; ?><?php if ($errors): ?><div class="alert alert-error"><?php foreach ($errors as $error): ?><p><?= escapeOutput($error); ?></p><?php endforeach; ?></div><?php endif; ?>
+<form method="post" action="<?= BASE_URL; ?>/modules/habits/edit.php?id=<?= (int) $habitId; ?>" class="blueprint-form compact-blueprint-form" data-quest-form><?= csrfInput(); ?>
+<section class="blueprint-step"><div class="step-number">01</div><div class="step-copy"><p class="sanctuary-kicker">The promise</p><h2>Name and realm</h2></div><div class="step-fields"><label for="habit_name">Quest name</label><input id="habit_name" name="habit_name" maxlength="100" value="<?= escapeOutput($data['habit_name']); ?>" required><fieldset class="realm-choice-grid"><legend class="sr-only">Sanctuary realm</legend><?php foreach (habitRealmOptions() as $value => $meta): ?><label class="realm-choice realm-<?= escapeOutput($value); ?> <?= $data['realm'] === $value ? 'is-checked' : ''; ?>"><input type="radio" name="realm" value="<?= escapeOutput($value); ?>" <?= $data['realm'] === $value ? 'checked' : ''; ?>><span class="realm-choice-symbol"><?= escapeOutput($meta['symbol']); ?></span><strong><?= escapeOutput($meta['label']); ?></strong></label><?php endforeach; ?></fieldset></div></section>
+<section class="blueprint-step"><div class="step-number">02</div><div class="step-copy"><p class="sanctuary-kicker">The rhythm</p><h2>Schedule and scale</h2></div><div class="step-fields schedule-fields"><label for="target_frequency">Rhythm</label><select id="target_frequency" name="target_frequency" data-frequency-select><?php foreach (habitFrequencyOptions() as $value => $label): ?><option value="<?= escapeOutput($value); ?>" <?= $data['target_frequency'] === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option><?php endforeach; ?></select><fieldset class="day-picker" data-schedule-days><legend>Scheduled days</legend><div><?php foreach (habitDayOptions() as $day => $label): ?><label><input type="checkbox" name="scheduled_days[]" value="<?= escapeOutput($day); ?>" <?= in_array($day, $data['scheduled_days'], true) ? 'checked' : ''; ?>><span><?= escapeOutput($label); ?></span></label><?php endforeach; ?></div></fieldset><div class="two-field-row"><div><label for="preferred_time">Preferred time <span>optional</span></label><input id="preferred_time" name="preferred_time" type="time" value="<?= escapeOutput($data['preferred_time']); ?>"></div><div><label for="duration_minutes">Gentle duration <span>optional</span></label><div class="input-suffix"><input id="duration_minutes" name="duration_minutes" type="number" min="1" max="1440" value="<?= escapeOutput((string) $data['duration_minutes']); ?>"><span>min</span></div></div></div></div></section>
+<section class="blueprint-step blueprint-final-step"><div class="step-number">03</div><div class="step-copy"><p class="sanctuary-kicker">The reminder</p><h2>Protect the reason.</h2></div><div class="step-fields"><label for="motivation">A note for your future self <span>optional</span></label><textarea id="motivation" name="motivation" maxlength="180"><?= escapeOutput($data['motivation']); ?></textarea><label for="priority">Importance</label><select id="priority" name="priority"><?php foreach (habitPriorityOptions() as $value => $label): ?><option value="<?= escapeOutput($value); ?>" <?= $data['priority'] === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option><?php endforeach; ?></select><div class="blueprint-actions"><button class="sanctuary-button sanctuary-button-primary" type="submit">Save blueprint</button><a class="sanctuary-text-link" href="<?= BASE_URL; ?>/modules/habits/manage.php">Cancel</a></div></div></section></form></section>
 <?php require __DIR__ . '/../../includes/footer.php'; ?>
