@@ -12,6 +12,7 @@ DROP TABLE IF EXISTS habit_logs;
 DROP TABLE IF EXISTS habits;
 DROP TABLE IF EXISTS habit_records;
 DROP TABLE IF EXISTS money_transactions;
+DROP TABLE IF EXISTS journal_drafts;
 DROP TABLE IF EXISTS journal_entries;
 DROP TABLE IF EXISTS exercise_records;
 DROP TABLE IF EXISTS users;
@@ -55,6 +56,22 @@ CREATE TABLE journal_entries (
     ON DELETE CASCADE,
   INDEX idx_journal_user_date (user_id, entry_date),
   INDEX idx_journal_mood (mood_status)
+);
+
+CREATE TABLE journal_drafts (
+  draft_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  title VARCHAR(120) NOT NULL DEFAULT '',
+  content TEXT NOT NULL,
+  mood_status VARCHAR(50) NOT NULL DEFAULT '',
+  entry_date DATE NULL,
+  template_key VARCHAR(32) NOT NULL DEFAULT 'blank',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_journal_draft_user
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    ON DELETE CASCADE,
+  INDEX idx_journal_draft_user_updated (user_id, updated_at)
 );
 
 CREATE TABLE money_transactions (
