@@ -18,10 +18,6 @@ if (!$journalId) {
 
 $entry = null;
 $pageError = null;
-$draftClearKey = is_string($_SESSION['journal_draft_clear'] ?? null)
-    ? $_SESSION['journal_draft_clear']
-    : '';
-unset($_SESSION['journal_draft_clear']);
 
 try {
     $connection = getDatabaseConnection();
@@ -39,10 +35,6 @@ try {
 $pageTitle = $entry ? $entry['title'] : 'Journal Entry';
 require __DIR__ . '/../../includes/header.php';
 ?>
-
-<?php if ($draftClearKey !== ''): ?>
-    <span data-journal-saved data-draft-key="<?= escapeOutput($draftClearKey); ?>" hidden></span>
-<?php endif; ?>
 
 <?php if ($pageError): ?>
     <div class="alert alert-error"><?= escapeOutput($pageError); ?></div>

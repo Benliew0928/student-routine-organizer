@@ -46,3 +46,35 @@ test('hasMeaningfulDraft ignores the default date alone', () => {
         template_key: 'blank',
     }), true);
 });
+
+test('createSaveQueue runs autosaves sequentially', async () => {
+    const order = [];
+    const queue = journal.createSaveQueue(async (value) => {
+        order.push(`start:${value}`);
+        await new Promise((resolve) => setImmediate(resolve));
+        order.push(`end:${value}`);
+        return value;
+    });
+
+    const first = queue.run('first');
+    const second = queue.run('second');
+    assert.deepEqual(await Promise.all([first, second]), ['first', 'second']);
+    assert.deepEqual(order, [
+        'start:first',
+        'end:first',
+        'start:second',
+        'end:second',
+    ]);
+});
+
+test('createSaveQueue continues after a failed autosave', async () => {
+    const queue = journal.createSaveQueue(async (value) => {
+        if (value === 'fail') {
+            throw new Error('offline');
+        }
+        return value;
+    });
+
+    await assert.rejects(queue.run('fail'), /offline/);
+    assert.equal(await queue.run('recover'), 'recover');
+});

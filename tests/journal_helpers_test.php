@@ -169,23 +169,20 @@ test('journal detail page enforces owned loading', function (): void {
     assertTrueValue(str_contains($source, 'nl2br(escapeOutput('));
 });
 
-test('journal create page has secure template-aware form workflow', function (): void {
+test('journal create page supports database draft and publish intents', function (): void {
     $source = file_get_contents(__DIR__ . '/../modules/journal/create.php');
 
     assertTrueValue(is_string($source));
     assertTrueValue(str_contains($source, 'verifyCsrfToken('));
-    assertTrueValue(str_contains($source, 'INSERT INTO journal_entries'));
-    assertTrueValue(str_contains($source, 'journalTemplateOptions('));
-    assertTrueValue(str_contains($source, 'data-journal-editor'));
-    assertTrueValue(str_contains($source, 'data-draft-key'));
-    assertSameValue(false, str_contains($source, 'will be implemented'));
-});
-
-test('journal detail page can signal successful draft cleanup', function (): void {
-    $source = file_get_contents(__DIR__ . '/../modules/journal/view.php');
-
-    assertTrueValue(is_string($source));
-    assertTrueValue(str_contains($source, 'data-journal-saved'));
+    assertTrueValue(str_contains($source, 'journalLoadDraftForUser('));
+    assertTrueValue(str_contains($source, 'journalValidateDraftData('));
+    assertTrueValue(str_contains($source, 'journalSaveDraft('));
+    assertTrueValue(str_contains($source, 'journalPublishDraft('));
+    assertTrueValue(str_contains($source, 'value="save_draft"'));
+    assertTrueValue(str_contains($source, 'value="publish"'));
+    assertTrueValue(str_contains($source, 'data-autosave-url'));
+    assertTrueValue(str_contains($source, 'data-journal-save-status'));
+    assertSameValue(false, str_contains($source, 'Discard Draft'));
 });
 
 test('journal edit page verifies ownership csrf and scoped update', function (): void {
@@ -224,12 +221,14 @@ test('journal uses a dedicated page script', function (): void {
     assertTrueValue(str_contains($footer, '$pageScripts'));
 });
 
-test('logout link exposes the current user for scoped draft cleanup', function (): void {
-    $source = file_get_contents(__DIR__ . '/../includes/navbar.php');
+test('obsolete browser draft controls are absent', function (): void {
+    $create = file_get_contents(__DIR__ . '/../modules/journal/create.php');
+    $view = file_get_contents(__DIR__ . '/../modules/journal/view.php');
+    $navbar = file_get_contents(__DIR__ . '/../includes/navbar.php');
 
-    assertTrueValue(is_string($source));
-    assertTrueValue(str_contains($source, 'data-journal-logout'));
-    assertTrueValue(str_contains($source, 'data-journal-user'));
+    assertSameValue(false, str_contains($create, 'data-draft-key'));
+    assertSameValue(false, str_contains($view, 'data-journal-saved'));
+    assertSameValue(false, str_contains($navbar, 'data-journal-logout'));
 });
 
 test('journal stylesheet defines all major responsive components', function (): void {

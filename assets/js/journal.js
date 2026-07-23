@@ -33,10 +33,28 @@
             || String(draft.template_key || 'blank') !== 'blank';
     }
 
+    function createSaveQueue(saveOperation) {
+        let tail = Promise.resolve();
+
+        return {
+            run(payload) {
+                const operation = tail
+                    .catch(() => undefined)
+                    .then(() => saveOperation(payload));
+                tail = operation;
+                return operation;
+            },
+            wait() {
+                return tail;
+            },
+        };
+    }
+
     return {
         countWords,
         nextTemplateState,
         hasMeaningfulDraft,
+        createSaveQueue,
     };
 }));
 
@@ -52,10 +70,24 @@
     const templateInput = document.querySelector('[data-template-input]');
     const wordCount = document.querySelector('[data-word-count]');
     const characterCount = document.querySelector('[data-character-count]');
+    const draftIdInput = form?.querySelector('[data-draft-id]');
+    const saveStatus = form?.querySelector('[data-journal-save-status]');
+    const saveText = form?.querySelector('[data-journal-save-text]');
+    const retryButton = form?.querySelector('[data-journal-save-retry]');
+    const titleField = form?.querySelector('[data-journal-title]');
+    const moodField = form?.querySelector('[data-journal-mood]');
+    const dateField = form?.querySelector('[data-journal-date]');
 
     if (!(form instanceof HTMLFormElement) || !(editor instanceof HTMLTextAreaElement)) {
         return;
     }
+
+    const autosaveUrl = form.dataset.autosaveUrl || '';
+    let revision = 0;
+    let savedRevision = 0;
+    let timerId = null;
+    let activeSave = Promise.resolve();
+    let submitting = false;
 
     function updateEditorMetrics() {
         if (wordCount instanceof HTMLElement) {
@@ -110,4 +142,138 @@
 
     editor.addEventListener('input', updateEditorMetrics);
     updateEditorMetrics();
+
+    function collectDraft() {
+        return {
+            csrf_token: form.querySelector('input[name="csrf_token"]')?.value || '',
+            draft_id: draftIdInput instanceof HTMLInputElement ? draftIdInput.value : '',
+            title: titleField instanceof HTMLInputElement ? titleField.value : '',
+            content: editor.value,
+            mood_status: moodField instanceof HTMLInputElement ? moodField.value : '',
+            entry_date: dateField instanceof HTMLInputElement ? dateField.value : '',
+            template_key: templateInput instanceof HTMLInputElement ? templateInput.value : 'blank',
+        };
+    }
+
+    function setSaveState(state, message) {
+        if (saveStatus instanceof HTMLElement) {
+            saveStatus.dataset.state = state;
+        }
+
+        if (saveText instanceof HTMLElement) {
+            saveText.textContent = message;
+        }
+
+        if (retryButton instanceof HTMLButtonElement) {
+            retryButton.hidden = state !== 'error';
+        }
+    }
+
+    async function sendDraft({ draft, targetRevision }) {
+        if (autosaveUrl === '') {
+            throw new Error('Draft autosave is unavailable.');
+        }
+
+        setSaveState('saving', 'Saving...');
+        const response = await fetch(autosaveUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+            },
+            body: new URLSearchParams(draft),
+        });
+        const result = await response.json();
+
+        if (!response.ok || result.success !== true) {
+            throw new Error(result.message || 'Could not save the draft.');
+        }
+
+        if (draftIdInput instanceof HTMLInputElement) {
+            draftIdInput.value = String(result.draft_id);
+        }
+
+        const resumedUrl = new URL(window.location.href);
+        resumedUrl.searchParams.set('draft_id', String(result.draft_id));
+        window.history.replaceState({}, '', resumedUrl);
+        savedRevision = Math.max(savedRevision, targetRevision);
+
+        if (revision === targetRevision) {
+            setSaveState('saved', result.saved_label);
+        } else {
+            queueAutosave(0);
+        }
+    }
+
+    const saveQueue = core.createSaveQueue(sendDraft);
+
+    function runSave(targetRevision) {
+        const draft = collectDraft();
+
+        if (!draft.draft_id && !core.hasMeaningfulDraft(draft)) {
+            savedRevision = targetRevision;
+            setSaveState('idle', 'Not saved yet');
+            return Promise.resolve();
+        }
+
+        const operation = saveQueue.run({ draft, targetRevision });
+        activeSave = operation.catch((error) => {
+            setSaveState('error', "Couldn't save draft");
+            throw error;
+        });
+
+        return activeSave;
+    }
+
+    function queueAutosave(delay = 900) {
+        window.clearTimeout(timerId);
+        setSaveState('idle', 'Not saved yet');
+        timerId = window.setTimeout(() => {
+            runSave(revision).catch(() => undefined);
+        }, delay);
+    }
+
+    function markDirty() {
+        revision += 1;
+        queueAutosave();
+    }
+
+    async function flushAutosave() {
+        window.clearTimeout(timerId);
+
+        if (revision > savedRevision) {
+            await runSave(revision);
+            return;
+        }
+
+        await activeSave;
+    }
+
+    form.addEventListener('input', markDirty);
+    form.addEventListener('change', markDirty);
+
+    retryButton?.addEventListener('click', () => {
+        queueAutosave(0);
+    });
+
+    form.addEventListener('submit', (event) => {
+        if (submitting) {
+            return;
+        }
+
+        event.preventDefault();
+        const submitter = event.submitter;
+        flushAutosave()
+            .catch(() => undefined)
+            .finally(() => {
+                submitting = true;
+                form.requestSubmit(submitter instanceof HTMLElement ? submitter : undefined);
+            });
+    });
+
+    window.addEventListener('beforeunload', (event) => {
+        if (!submitting && revision > savedRevision) {
+            event.preventDefault();
+            event.returnValue = '';
+        }
+    });
 }());
