@@ -10,7 +10,9 @@ requireLogin();
 $userId = (int) $_SESSION['user_id'];
 $filters = journalFiltersFromRequest($_GET);
 $records = [];
+$drafts = [];
 $moodSuggestions = [];
+$templateOptions = journalTemplateOptions();
 $summary = [
     'total' => 0,
     'this_month' => 0,
@@ -20,6 +22,7 @@ $pageError = null;
 
 try {
     $connection = getDatabaseConnection();
+    $drafts = journalListDraftsForUser($connection, $userId);
 
     $summaryStmt = $connection->prepare(
         "SELECT COUNT(*) AS total, "
@@ -85,6 +88,7 @@ require __DIR__ . '/../../includes/header.php';
         <div class="journal-summary-row" aria-label="Journal overview">
             <span><strong><?= number_format($summary['total']); ?></strong> total entries</span>
             <span><strong><?= number_format($summary['this_month']); ?></strong> this month</span>
+            <span><strong><?= number_format(count($drafts)); ?></strong> saved drafts</span>
             <span>Latest mood: <strong><?= escapeOutput($summary['latest_mood']); ?></strong></span>
         </div>
     </div>
@@ -94,6 +98,53 @@ require __DIR__ . '/../../includes/header.php';
 <?php if ($pageError): ?>
     <div class="alert alert-error"><?= escapeOutput($pageError); ?></div>
 <?php else: ?>
+    <?php if ($drafts): ?>
+        <section class="journal-draft-section" aria-labelledby="journal-drafts-heading">
+            <div class="journal-board-heading">
+                <div>
+                    <p class="summary-label">Continue where you stopped</p>
+                    <h2 id="journal-drafts-heading">Your Drafts</h2>
+                </div>
+                <span class="muted"><?= number_format(count($drafts)); ?> unfinished</span>
+            </div>
+
+            <div class="journal-draft-grid">
+                <?php foreach ($drafts as $draft): ?>
+                    <?php
+                    $draftTitle = trim((string) $draft['title']) !== ''
+                        ? (string) $draft['title']
+                        : 'Untitled draft';
+                    $draftPreview = trim((string) $draft['content']) !== ''
+                        ? journalPreview((string) $draft['content'], 120)
+                        : 'No writing yet';
+                    $template = $templateOptions[$draft['template_key']] ?? $templateOptions['blank'];
+                    ?>
+                    <article class="journal-draft-card">
+                        <div class="journal-card-topline">
+                            <span class="journal-draft-badge">Draft</span>
+                            <time datetime="<?= escapeOutput($draft['updated_at']); ?>">
+                                Saved <?= escapeOutput(date('M j, g:i A', strtotime($draft['updated_at']))); ?>
+                            </time>
+                        </div>
+                        <h3><?= escapeOutput($draftTitle); ?></h3>
+                        <p><?= escapeOutput($draftPreview); ?></p>
+                        <?php if ($draft['template_key'] !== 'blank'): ?>
+                            <span class="journal-template-label"><?= escapeOutput($template['label']); ?></span>
+                        <?php endif; ?>
+                        <div class="journal-card-actions">
+                            <a class="button small-button primary" href="<?= BASE_URL; ?>/modules/journal/create.php?draft_id=<?= (int) $draft['draft_id']; ?>">
+                                Continue Writing
+                            </a>
+                            <a class="button small-button danger-button" href="<?= BASE_URL; ?>/modules/journal/draft_delete.php?id=<?= (int) $draft['draft_id']; ?>">
+                                Delete Draft
+                            </a>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
     <section class="panel journal-filter-panel" aria-labelledby="journal-filter-heading">
         <div class="journal-filter-heading">
             <div>

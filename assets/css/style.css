@@ -2006,24 +2006,77 @@ textarea {
     margin-top: 18px;
 }
 
-.journal-draft-banner {
-    align-items: center;
-    background: var(--blue-soft);
-    border: 1px solid #bfd0ef;
+.journal-draft-section {
+    margin-bottom: 24px;
+}
+
+.journal-draft-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+}
+
+.journal-draft-card {
+    background: linear-gradient(145deg, #fffaf1, #fff);
+    border: 1px dashed #d7b46a;
     border-radius: var(--radius);
-    color: #204f94;
+    box-shadow: var(--shadow-sm);
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    padding: 16px 18px;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 220px;
+    padding: 20px;
 }
 
-.journal-draft-banner[hidden] {
-    display: none;
+.journal-draft-card h3,
+.journal-draft-card p {
+    margin: 0;
 }
 
-.journal-draft-banner p {
-    margin: 5px 0 0;
+.journal-draft-card p {
+    color: var(--muted);
+    line-height: 1.65;
+}
+
+.journal-draft-badge,
+.journal-template-label {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 900;
+    width: fit-content;
+}
+
+.journal-draft-badge {
+    background: #fff0c7;
+    color: #74520d;
+    padding: 5px 10px;
+}
+
+.journal-template-label {
+    background: var(--rose-soft);
+    color: var(--rose);
+    padding: 4px 9px;
+}
+
+.journal-save-status {
+    align-items: center;
+    color: var(--muted);
+    display: flex;
+    gap: 9px;
+    margin-top: 16px;
+}
+
+.journal-save-status[data-state="saving"] {
+    color: var(--primary);
+}
+
+.journal-save-status[data-state="saved"] {
+    color: #32704a;
+}
+
+.journal-save-status[data-state="error"] {
+    color: var(--danger);
 }
 
 .journal-delete-panel {
@@ -2060,8 +2113,7 @@ textarea {
     .journal-board-heading,
     .journal-compose-heading,
     .journal-section-heading,
-    .journal-reading-header,
-    .journal-draft-banner {
+    .journal-reading-header {
         align-items: stretch;
         display: grid;
         grid-template-columns: 1fr;
@@ -2079,15 +2131,22 @@ textarea {
 
     .journal-filter-form,
     .journal-template-grid,
-    .journal-field-grid {
+    .journal-field-grid,
+    .journal-draft-grid {
         grid-template-columns: 1fr;
     }
 
     .journal-filter-actions,
-    .journal-compose-actions,
     .journal-card-actions {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .journal-compose-actions,
+    .journal-save-status {
+        align-items: stretch;
+        display: grid;
+        grid-template-columns: 1fr;
     }
 
     .journal-filter-actions .button,

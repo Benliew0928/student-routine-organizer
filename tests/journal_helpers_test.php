@@ -231,6 +231,26 @@ test('obsolete browser draft controls are absent', function (): void {
     assertSameValue(false, str_contains($navbar, 'data-journal-logout'));
 });
 
+test('journal list renders owned database drafts separately', function (): void {
+    $source = file_get_contents(__DIR__ . '/../modules/journal/index.php');
+
+    assertTrueValue(str_contains($source, 'journalListDraftsForUser('));
+    assertTrueValue(str_contains($source, 'Your Drafts'));
+    assertTrueValue(str_contains($source, 'Continue Writing'));
+    assertTrueValue(str_contains($source, 'draft_delete.php?id='));
+});
+
+test('draft delete page confirms and scopes deletion', function (): void {
+    $path = __DIR__ . '/../modules/journal/draft_delete.php';
+    assertTrueValue(is_file($path), 'Expected draft deletion page.');
+    $source = is_file($path) ? file_get_contents($path) : '';
+
+    assertTrueValue(str_contains($source, 'journalLoadDraftForUser('));
+    assertTrueValue(str_contains($source, "REQUEST_METHOD'] === 'POST'"));
+    assertTrueValue(str_contains($source, 'verifyCsrfToken('));
+    assertTrueValue(str_contains($source, 'journalDeleteDraftForUser('));
+});
+
 test('journal stylesheet defines all major responsive components', function (): void {
     $source = file_get_contents(__DIR__ . '/../assets/css/style.css');
 
@@ -242,11 +262,14 @@ test('journal stylesheet defines all major responsive components', function (): 
         '.journal-reading-page',
         '.journal-template-grid',
         '.journal-editor-panel',
-        '.journal-draft-banner',
+        '.journal-draft-grid',
+        '.journal-draft-card',
+        '.journal-save-status',
         '.journal-delete-panel',
     ] as $selector) {
         assertTrueValue(str_contains($source, $selector), 'Missing CSS selector ' . $selector);
     }
+    assertSameValue(false, str_contains($source, '.journal-draft-banner'));
 });
 
 test('draft validation allows incomplete fields', function (): void {
