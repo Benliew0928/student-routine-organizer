@@ -50,11 +50,17 @@
         };
     }
 
+    async function submitAfterSuccessfulSave(flushSave, submit) {
+        await flushSave();
+        submit();
+    }
+
     return {
         countWords,
         nextTemplateState,
         hasMeaningfulDraft,
         createSaveQueue,
+        submitAfterSuccessfulSave,
     };
 }));
 
@@ -262,12 +268,13 @@
 
         event.preventDefault();
         const submitter = event.submitter;
-        flushAutosave()
-            .catch(() => undefined)
-            .finally(() => {
+        core.submitAfterSuccessfulSave(
+            flushAutosave,
+            () => {
                 submitting = true;
                 form.requestSubmit(submitter instanceof HTMLElement ? submitter : undefined);
-            });
+            }
+        ).catch(() => undefined);
     });
 
     window.addEventListener('beforeunload', (event) => {

@@ -269,6 +269,7 @@ test('journal stylesheet defines all major responsive components', function (): 
     ] as $selector) {
         assertTrueValue(str_contains($source, $selector), 'Missing CSS selector ' . $selector);
     }
+    assertTrueValue(str_contains($source, '.journal-save-status [hidden]'));
     assertSameValue(false, str_contains($source, '.journal-draft-banner'));
 });
 

@@ -78,3 +78,32 @@ test('createSaveQueue continues after a failed autosave', async () => {
     await assert.rejects(queue.run('fail'), /offline/);
     assert.equal(await queue.run('recover'), 'recover');
 });
+
+test('submitAfterSuccessfulSave submits only after a successful flush', async () => {
+    const events = [];
+
+    await journal.submitAfterSuccessfulSave(
+        async () => events.push('saved'),
+        () => events.push('submitted')
+    );
+
+    assert.deepEqual(events, ['saved', 'submitted']);
+});
+
+test('submitAfterSuccessfulSave blocks submission when flushing fails', async () => {
+    let submitted = false;
+
+    await assert.rejects(
+        journal.submitAfterSuccessfulSave(
+            async () => {
+                throw new Error('offline');
+            },
+            () => {
+                submitted = true;
+            }
+        ),
+        /offline/
+    );
+
+    assert.equal(submitted, false);
+});

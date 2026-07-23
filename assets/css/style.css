@@ -2067,6 +2067,10 @@ textarea {
     margin-top: 16px;
 }
 
+.journal-save-status [hidden] {
+    display: none;
+}
+
 .journal-save-status[data-state="saving"] {
     color: var(--primary);
 }
