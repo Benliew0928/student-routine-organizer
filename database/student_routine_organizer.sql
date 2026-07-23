@@ -9,6 +9,8 @@ CREATE DATABASE IF NOT EXISTS student_routine_organizer
 USE student_routine_organizer;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS habit_logs;
+DROP TABLE IF EXISTS habits;
 DROP TABLE IF EXISTS habit_records;
 DROP TABLE IF EXISTS money_transactions;
 DROP TABLE IF EXISTS journal_entries;
@@ -74,38 +76,72 @@ CREATE TABLE money_transactions (
   INDEX idx_money_type_category (transaction_type, category)
 );
 
-CREATE TABLE habit_records (
+CREATE TABLE habits (
   habit_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   habit_name VARCHAR(100) NOT NULL,
-  category VARCHAR(60) NOT NULL DEFAULT 'General',
-  target_frequency VARCHAR(50) NOT NULL,
-  completion_status ENUM('pending', 'completed', 'missed') NOT NULL DEFAULT 'pending',
+  realm ENUM('focus', 'energy', 'mind', 'life_admin') NOT NULL DEFAULT 'focus',
+  target_frequency ENUM('daily', 'weekdays', 'weekly', 'custom') NOT NULL DEFAULT 'daily',
+  scheduled_days VARCHAR(27) NOT NULL,
+  preferred_time TIME NULL,
+  duration_minutes SMALLINT UNSIGNED NULL,
+  motivation VARCHAR(180) NULL,
   priority ENUM('low', 'medium', 'high') NOT NULL DEFAULT 'medium',
-  habit_date DATE NOT NULL,
-  notes VARCHAR(255),
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_habit_user
     FOREIGN KEY (user_id) REFERENCES users(user_id)
     ON DELETE CASCADE,
-  INDEX idx_habit_user_date (user_id, habit_date),
-  INDEX idx_habit_user_status_date (user_id, completion_status, habit_date),
-  INDEX idx_habit_user_name_date (user_id, habit_name, habit_date),
-  INDEX idx_habit_status (completion_status),
-  UNIQUE KEY uq_habit_user_name_date (user_id, habit_name, habit_date)
+  INDEX idx_habit_user_active (user_id, is_active),
+  INDEX idx_habit_user_realm (user_id, realm)
+);
+
+CREATE TABLE habit_logs (
+  log_id INT AUTO_INCREMENT PRIMARY KEY,
+  habit_id INT NOT NULL,
+  user_id INT NOT NULL,
+  scheduled_date DATE NOT NULL,
+  completion_status ENUM('scheduled', 'completed', 'skipped', 'missed') NOT NULL DEFAULT 'scheduled',
+  completed_at DATETIME NULL,
+  reflection_note VARCHAR(255) NULL,
+  deleted_at DATETIME NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_habit_log_habit
+    FOREIGN KEY (habit_id) REFERENCES habits(habit_id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_habit_log_user
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    ON DELETE CASCADE,
+  UNIQUE KEY uq_habit_log_date (habit_id, scheduled_date),
+  INDEX idx_habit_log_user_date (user_id, scheduled_date),
+  INDEX idx_habit_log_status_date (completion_status, scheduled_date)
 );
 
 INSERT INTO users (full_name, email, password_hash, role) VALUES
 ('System Admin', 'admin@example.com', '$2y$10$FyJDw1My5DclqVsQQIUlQen.oego9dFKowVG7cF2sDegxSGYHsIhC', 'admin'),
 ('Sample Student', 'student@example.com', '$2y$10$I1CLDdxlAe1CPh3Si0gBYeszJkDqsiF6OLYeF2cNwBaGzgNXFJpxC', 'student');
 
-INSERT INTO habit_records (user_id, habit_name, category, target_frequency, completion_status, priority, habit_date, notes)
-SELECT user_id, 'Morning Study Review', 'Study', 'Daily', 'completed', 'high', '2026-06-18', 'Reviewed lecture notes before class.' FROM users WHERE email = 'student@example.com'
-UNION ALL SELECT user_id, 'Morning Study Review', 'Study', 'Daily', 'completed', 'high', '2026-06-19', 'Completed revision for server-side topic.' FROM users WHERE email = 'student@example.com'
-UNION ALL SELECT user_id, 'Morning Study Review', 'Study', 'Daily', 'completed', 'high', '2026-06-20', 'Practiced SQL table relationships.' FROM users WHERE email = 'student@example.com'
-UNION ALL SELECT user_id, 'Drink Water', 'Health', 'Daily', 'completed', 'medium', '2026-06-20', 'Reached the daily hydration target.' FROM users WHERE email = 'student@example.com'
-UNION ALL SELECT user_id, 'Drink Water', 'Health', 'Daily', 'pending', 'medium', '2026-06-21', 'Still tracking today.' FROM users WHERE email = 'student@example.com'
-UNION ALL SELECT user_id, 'Budget Check', 'Finance', 'Weekly', 'completed', 'medium', '2026-06-17', 'Checked spending before the weekend.' FROM users WHERE email = 'student@example.com'
-UNION ALL SELECT user_id, 'Exercise Stretch', 'Fitness', 'Weekdays', 'missed', 'low', '2026-06-19', 'Skipped because of group meeting.' FROM users WHERE email = 'student@example.com'
-UNION ALL SELECT user_id, 'Assignment Planning', 'Study', 'Weekly', 'pending', 'high', '2026-06-22', 'Prepare next task checklist.' FROM users WHERE email = 'student@example.com';
+INSERT INTO exercise_records (user_id, activity_type, duration_minutes, calories_burned, exercise_date, notes)
+SELECT user_id, 'Jogging', 35, 280, '2026-07-14', 'Morning jog around campus.' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Cycling', 50, 420, '2026-07-16', 'Evening ride after class.' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Gym Session', 60, 510, '2026-07-18', 'Strength training and treadmill cooldown.' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Swimming', 40, 330, '2026-07-20', 'Easy laps for recovery.' FROM users WHERE email = 'student@example.com';
+
+INSERT INTO habits (user_id, habit_name, realm, target_frequency, scheduled_days, preferred_time, duration_minutes, motivation, priority)
+SELECT user_id, 'Morning Study Review', 'focus', 'weekdays', 'mon,tue,wed,thu,fri', '08:00:00', 20, 'Arrive at class feeling prepared.', 'high' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Fill Water Bottle', 'energy', 'daily', 'mon,tue,wed,thu,fri,sat,sun', '09:00:00', 5, 'Keep my energy steady through lectures.', 'medium' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Write One Reflection', 'mind', 'custom', 'mon,wed,fri,sun', '21:30:00', 10, 'Make space for what I am feeling.', 'medium' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Plan Tomorrow', 'life_admin', 'weekdays', 'mon,tue,wed,thu,fri', '20:30:00', 10, 'Begin the next day with less stress.', 'high' FROM users WHERE email = 'student@example.com';
+
+INSERT INTO habit_logs (habit_id, user_id, scheduled_date, completion_status, completed_at, reflection_note)
+SELECT h.habit_id, h.user_id, '2026-07-20', 'completed', '2026-07-20 08:20:00', 'Finished the database relationship notes.' FROM habits h WHERE h.habit_name = 'Morning Study Review'
+UNION ALL SELECT h.habit_id, h.user_id, '2026-07-21', 'completed', '2026-07-21 08:18:00', 'Reviewed PHP form validation before class.' FROM habits h WHERE h.habit_name = 'Morning Study Review'
+UNION ALL SELECT h.habit_id, h.user_id, '2026-07-22', 'scheduled', NULL, NULL FROM habits h WHERE h.habit_name = 'Morning Study Review'
+UNION ALL SELECT h.habit_id, h.user_id, '2026-07-20', 'completed', '2026-07-20 09:05:00', 'Refilled it before leaving the hostel.' FROM habits h WHERE h.habit_name = 'Fill Water Bottle'
+UNION ALL SELECT h.habit_id, h.user_id, '2026-07-21', 'completed', '2026-07-21 09:08:00', NULL FROM habits h WHERE h.habit_name = 'Fill Water Bottle'
+UNION ALL SELECT h.habit_id, h.user_id, '2026-07-22', 'scheduled', NULL, NULL FROM habits h WHERE h.habit_name = 'Fill Water Bottle'
+UNION ALL SELECT h.habit_id, h.user_id, '2026-07-20', 'completed', '2026-07-20 21:40:00', 'A calm reset before the new week.' FROM habits h WHERE h.habit_name = 'Write One Reflection'
+UNION ALL SELECT h.habit_id, h.user_id, '2026-07-21', 'completed', '2026-07-21 20:40:00', 'Mapped tomorrow before sleeping.' FROM habits h WHERE h.habit_name = 'Plan Tomorrow'
+UNION ALL SELECT h.habit_id, h.user_id, '2026-07-22', 'scheduled', NULL, NULL FROM habits h WHERE h.habit_name = 'Plan Tomorrow';

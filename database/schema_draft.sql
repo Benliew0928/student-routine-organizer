@@ -8,6 +8,8 @@ CREATE DATABASE IF NOT EXISTS student_routine_organizer
 
 USE student_routine_organizer;
 
+DROP TABLE IF EXISTS habit_logs;
+DROP TABLE IF EXISTS habits;
 DROP TABLE IF EXISTS habit_records;
 DROP TABLE IF EXISTS money_transactions;
 DROP TABLE IF EXISTS journal_entries;
@@ -72,26 +74,42 @@ CREATE TABLE money_transactions (
   INDEX idx_money_type_category (transaction_type, category)
 );
 
-CREATE TABLE habit_records (
+CREATE TABLE habits (
   habit_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   habit_name VARCHAR(100) NOT NULL,
-  category VARCHAR(60) NOT NULL DEFAULT 'General',
-  target_frequency VARCHAR(50) NOT NULL,
-  completion_status ENUM('pending', 'completed', 'missed') NOT NULL DEFAULT 'pending',
+  realm ENUM('focus', 'energy', 'mind', 'life_admin') NOT NULL DEFAULT 'focus',
+  target_frequency ENUM('daily', 'weekdays', 'weekly', 'custom') NOT NULL DEFAULT 'daily',
+  scheduled_days VARCHAR(27) NOT NULL,
+  preferred_time TIME NULL,
+  duration_minutes SMALLINT UNSIGNED NULL,
+  motivation VARCHAR(180) NULL,
   priority ENUM('low', 'medium', 'high') NOT NULL DEFAULT 'medium',
-  habit_date DATE NOT NULL,
-  notes VARCHAR(255),
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_habit_user
     FOREIGN KEY (user_id) REFERENCES users(user_id)
     ON DELETE CASCADE,
-  INDEX idx_habit_user_date (user_id, habit_date),
-  INDEX idx_habit_user_status_date (user_id, completion_status, habit_date),
-  INDEX idx_habit_user_name_date (user_id, habit_name, habit_date),
-  INDEX idx_habit_status (completion_status),
-  UNIQUE KEY uq_habit_user_name_date (user_id, habit_name, habit_date)
+  INDEX idx_habit_user_active (user_id, is_active),
+  INDEX idx_habit_user_realm (user_id, realm)
+);
+
+CREATE TABLE habit_logs (
+  log_id INT AUTO_INCREMENT PRIMARY KEY,
+  habit_id INT NOT NULL,
+  user_id INT NOT NULL,
+  scheduled_date DATE NOT NULL,
+  completion_status ENUM('scheduled', 'completed', 'skipped', 'missed') NOT NULL DEFAULT 'scheduled',
+  completed_at DATETIME NULL,
+  reflection_note VARCHAR(255) NULL,
+  deleted_at DATETIME NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_habit_log_habit FOREIGN KEY (habit_id) REFERENCES habits(habit_id) ON DELETE CASCADE,
+  CONSTRAINT fk_habit_log_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  UNIQUE KEY uq_habit_log_date (habit_id, scheduled_date),
+  INDEX idx_habit_log_user_date (user_id, scheduled_date)
 );
 
 -- Sample users for later testing.

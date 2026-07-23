@@ -31,8 +31,8 @@ Update the tracking tables at the end of every work session.
 | Phase 2 | Set up project folder and database plan | Solo/User | Done | 2026-06-18 | Project skeleton created at `C:\xampp\htdocs\student-routine-organizer`; schema draft added; localhost verified |
 | Phase 3 | Build shared database and authentication | Solo/User | Done | 2026-06-18 | Database imported; registration, login, logout, sessions, cookie usage, student/admin redirects, and protected pages verified |
 | Phase 4 | Build student and admin dashboards | Solo/User | Done | 2026-06-19 | Student summaries, admin totals, registered users page, and system summaries page implemented and tested |
-| Phase 5 | Build Exercise Tracker | Member 1 | Not Started |  |  |
-| Phase 6 | Build Diary Journal | Member 2 | Done | 2026-07-16 | Secure CRUD, owned detail view, templates, search, mood/date filters, sorting, mood suggestions, draft recovery, responsive UI, and automated/live verification completed |
+| Phase 5 | Build Exercise Tracker | Member 1 | Done | 2026-07-20 | CRUD, validation, ownership checks, summaries, filters, sorting, CSV export, and CSRF protection completed |
+| Phase 6 | Build Diary Journal | Member 2 | Not Started |  |  |
 | Phase 7 | Build Money Tracker | Member 3 | Not Started |  |  |
 | Phase 8 | Build Habit Tracker | Member 4 | Done | 2026-06-23 | Enhanced CRUD, filters, sorting, quick status updates, progress summaries, best streak, CSV export, CSRF protection, and sample data added |
 | Phase 9 | Integrate all modules | Group | Not Started |  |  |
@@ -47,8 +47,8 @@ Update the tracking tables at the end of every work session.
 
 | Member | Module | Main Pages | Status | Current Issue | Review By |
 |---|---|---|---|---|---|
-| Member 1 | Exercise Tracker | Add, View, Edit, Delete | Not Started |  |  |
-| Member 2 | Diary Journal | Add, View, Edit, Delete | Done | Ready for group review and demonstration screenshots |  |
+| Member 1 | Exercise Tracker | Add, View, Edit, Delete | Done | Ready for group review and browser/database testing |  |
+| Member 2 | Diary Journal | Add, View, Edit, Delete | Not Started |  |  |
 | Member 3 | Money Tracker | Add, View, Edit, Delete | Not Started |  |  |
 | Member 4 | Habit Tracker | Add, View, Edit, Delete | Done | Ready for group review and browser/database testing |  |
 
@@ -64,7 +64,7 @@ Use this small table whenever you start working.
 | 2026-06-18 | Codex | Complete Phase 3 database and authentication | Imported MySQL database, added seed admin/student accounts, implemented registration/login/logout, protected pages, and verified auth redirects | Move to Phase 4: connect student/admin dashboard summaries |
 | 2026-06-19 | Codex | Complete Phase 4 dashboards and comprehensive check | Implemented student/admin summaries, users table, system summaries, table/card styling; verified syntax, auth, validation, redirects, and dashboard calculations | Move to Phase 5: build Exercise Tracker CRUD |
 | 2026-06-23 | Codex | Complete Member 4 Habit Tracker | Built enhanced habit CRUD, validation, ownership checks, filters, sorting, summaries, streaks, quick status updates, CSV export, CSRF protection, migration SQL, and sample data; PHP syntax check passed | Start XAMPP Apache/MySQL, import `database/habit_tracker_migration.sql` if needed, then capture report screenshots |
-| 2026-07-16 | Codex | Complete Member 2 Diary Journal | Built secure per-user CRUD, full reading view, five writing templates, free-text mood suggestions, search/filter/sort, validation, CSRF, safe output, draft recovery, responsive UI, automated tests, and live two-user browser verification | Merge the feature branch, then capture report and presentation screenshots |
+| 2026-07-20 | Codex | Complete Member 1 Exercise Tracker | Built exercise CRUD, validation, ownership checks, summaries, weekly progress, most frequent activity, filters, sorting, CSV export, CSRF protection, sample data, and responsive module styling | Start XAMPP Apache/MySQL, test Exercise add/edit/delete/filter/export flows, then capture report screenshots |
 |  |  |  |  |  |
 |  |  |  |  |  |
 
@@ -294,24 +294,25 @@ Goal: Complete full CRUD for exercise records.
 
 ### Build Steps
 
-- [ ] Create Exercise list page.
-- [ ] Query only current user's exercise records.
-- [ ] Display records in a table.
-- [ ] Add empty-state message when no records exist.
-- [ ] Create Add Exercise form.
-- [ ] Validate activity type is not empty.
-- [ ] Validate duration is greater than 0.
-- [ ] Validate calories burned is 0 or greater.
-- [ ] Validate date is not empty.
-- [ ] Insert record with current `user_id`.
-- [ ] Create Edit Exercise form.
-- [ ] Load record using both `exercise_id` and `user_id`.
-- [ ] Update record after validation.
-- [ ] Create Delete Exercise function.
-- [ ] Confirm record belongs to current user before deleting.
-- [ ] Show success/error messages.
-- [ ] Add optional filter or sort by activity/date.
-- [ ] Add summary such as total duration or total calories.
+- [x] Create Exercise list page.
+- [x] Query only current user's exercise records.
+- [x] Display records in a responsive workout card board.
+- [x] Add empty-state message when no records exist.
+- [x] Create Add Exercise form.
+- [x] Validate activity type is not empty.
+- [x] Validate duration is greater than 0.
+- [x] Validate calories burned is 0 or greater.
+- [x] Validate date is not empty.
+- [x] Insert record with current `user_id`.
+- [x] Create Edit Exercise form.
+- [x] Load record using both `exercise_id` and `user_id`.
+- [x] Update record after validation.
+- [x] Create Delete Exercise function.
+- [x] Confirm record belongs to current user before deleting.
+- [x] Show success/error messages.
+- [x] Add optional filter or sort by activity/date.
+- [x] Add summary such as total duration or total calories.
+- [x] Add search, date range filter, weekly progress, most frequent activity, and CSV export.
 
 ### Done Criteria
 
@@ -891,7 +892,7 @@ Only mark the assignment as ready when every item below is done.
 | Authentication completed | Not Started |  |
 | Student dashboard completed | Not Started |  |
 | Admin dashboard completed | Not Started |  |
-| Exercise module completed | Not Started |  |
+| Exercise module completed | Done | Member 1 CRUD and enhanced summaries completed on 2026-07-20 |
 | Journal module completed | Not Started |  |
 | Money module completed | Not Started |  |
 | Habit module completed | Not Started |  |
