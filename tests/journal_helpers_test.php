@@ -290,4 +290,18 @@ test('meaningful draft ignores the default date alone', function (): void {
     assertTrueValue(journalDraftHasMeaningfulContent($blank));
 });
 
+test('draft autosave endpoint enforces method session csrf and ownership', function (): void {
+    $path = __DIR__ . '/../modules/journal/draft_autosave.php';
+    assertTrueValue(is_file($path), 'Expected the draft autosave endpoint.');
+    $source = is_file($path) ? file_get_contents($path) : '';
+
+    assertTrueValue(is_string($source));
+    assertTrueValue(str_contains($source, "REQUEST_METHOD'] !== 'POST'"));
+    assertTrueValue(str_contains($source, 'isLoggedIn()'));
+    assertTrueValue(str_contains($source, 'verifyCsrfToken('));
+    assertTrueValue(str_contains($source, 'journalValidateDraftData('));
+    assertTrueValue(str_contains($source, 'journalSaveDraft('));
+    assertTrueValue(str_contains($source, 'Content-Type: application/json'));
+});
+
 finishTests();
