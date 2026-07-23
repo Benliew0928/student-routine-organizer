@@ -9,7 +9,7 @@ function moneyTransactionTypeOptions(): array
     ];
 }
 
-function moneyCategoryOptions(): array
+function moneyExpenseCategoryOptions(): array
 {
     return [
         'Food' => 'Food',
@@ -19,11 +19,41 @@ function moneyCategoryOptions(): array
         'Education' => 'Education',
         'Entertainment' => 'Entertainment',
         'Healthcare' => 'Healthcare',
+        'Others' => 'Others',
+    ];
+}
+
+function moneyIncomeCategoryOptions(): array
+{
+    return [
         'Salary' => 'Salary',
         'Allowance' => 'Allowance',
         'Freelance' => 'Freelance',
         'Others' => 'Others',
     ];
+}
+
+function moneyCategoryOptions(): array
+{
+    return moneyExpenseCategoryOptions() + moneyIncomeCategoryOptions();
+}
+
+function moneyCategoriesForTransactionType(string $transactionType): array
+{
+    return $transactionType === 'income' ? moneyIncomeCategoryOptions() : moneyExpenseCategoryOptions();
+}
+
+function moneyCategoryTypes(string $category): array
+{
+    $types = [];
+    if (array_key_exists($category, moneyIncomeCategoryOptions())) {
+        $types[] = 'income';
+    }
+    if (array_key_exists($category, moneyExpenseCategoryOptions())) {
+        $types[] = 'expense';
+    }
+
+    return $types;
 }
 
 function moneySortOptions(): array
@@ -83,7 +113,7 @@ function moneyValidateData(array $data): array
         }
     }
 
-    if ($data['category'] === '' || !array_key_exists($data['category'], moneyCategoryOptions())) {
+    if ($data['category'] === '' || !array_key_exists($data['category'], moneyCategoriesForTransactionType($data['transaction_type']))) {
         $errors[] = 'Please select a valid category from the dropdown.';
     }
 
@@ -258,17 +288,58 @@ function moneyGetSummary(mysqli $connection, int $userId): array
     ];
 }
 
+function moneyGetCategoryBreakdown(mysqli $connection, int $userId, string $transactionType): array
+{
+    $stmt = $connection->prepare('SELECT category, COALESCE(SUM(amount), 0) AS total FROM money_transactions WHERE user_id = ? AND transaction_type = ? GROUP BY category ORDER BY total DESC, category ASC');
+    $stmt->bind_param('is', $userId, $transactionType);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function renderMoneyCategorySelectorScript(): void
+{
+    echo '<script>
+        (() => {
+            const typeSelect = document.getElementById("transaction_type");
+            const categorySelect = document.getElementById("category");
+            if (!typeSelect || !categorySelect) return;
+
+            const updateCategories = () => {
+                let firstAvailable = null;
+                Array.from(categorySelect.options).forEach((option) => {
+                    const isAvailable = option.dataset.types.split(" ").includes(typeSelect.value);
+                    option.disabled = !isAvailable;
+                    option.hidden = !isAvailable;
+                    if (isAvailable && firstAvailable === null) firstAvailable = option.value;
+                });
+
+                if (categorySelect.selectedOptions[0]?.disabled && firstAvailable !== null) {
+                    categorySelect.value = firstAvailable;
+                }
+            };
+
+            typeSelect.addEventListener("change", updateCategories);
+            updateCategories();
+        })();
+    </script>';
+}
+
 function renderMoneyStyles(): void
 {
     echo '<style>
         /* Money Tracker Premium Orange Theme & Responsive Styling */
         .money-theme-hero {
-            background: linear-gradient(135deg, #ffffff 0%, #fff7ef 55%, #ffe8d0 100%);
+            align-items: center;
+            background: linear-gradient(135deg, #fffdf9 0%, #fff7ef 58%, #ffe8d0 100%);
             border: 1px solid #f0c590;
             border-radius: 18px;
             box-shadow: 0 10px 30px rgba(217, 130, 43, 0.09);
-            padding: 36px 40px;
-            margin-bottom: 28px;
+            display: grid;
+            gap: 28px;
+            grid-template-columns: minmax(0, 1fr) auto;
+            padding: 34px;
+            margin-bottom: 18px;
             position: relative;
             overflow: hidden;
         }
@@ -281,6 +352,19 @@ function renderMoneyStyles(): void
             height: 5px;
             background: linear-gradient(90deg, #d9822b 0%, #f5a65b 50%, #e65100 100%);
         }
+        .money-theme-hero::after {
+            background: radial-gradient(circle, rgba(217, 130, 43, 0.16) 1px, transparent 1.5px);
+            background-size: 18px 18px;
+            content: "";
+            height: 200px;
+            opacity: 0.55;
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 34%;
+        }
+        .money-hero-copy,
+        .money-overview-card { position: relative; z-index: 1; }
         .money-theme-hero .eyebrow {
             color: #d9822b;
             font-weight: 800;
@@ -300,6 +384,31 @@ function renderMoneyStyles(): void
             font-size: 15px;
             margin: 0;
         }
+        .money-hero-metrics { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+        .money-hero-metrics span {
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(240, 197, 144, 0.85);
+            border-radius: 999px;
+            color: #7a634e;
+            display: inline-flex;
+            font-size: 13px;
+            font-weight: 800;
+            gap: 6px;
+            min-height: 32px;
+            padding: 6px 10px;
+        }
+        .money-hero-metrics strong { color: #945315; }
+        .money-overview-card {
+            background: rgba(255, 255, 255, 0.74);
+            border: 1px solid rgba(240, 197, 144, 0.92);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(217, 130, 43, 0.1);
+            min-width: 215px;
+            padding: 18px 20px;
+        }
+        .money-overview-card .summary-label { color: #8c6843; display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
+        .money-overview-card strong { color: #3b2000; display: block; font-size: 24px; margin: 6px 0 3px; }
+        .money-overview-card small { color: #7a634e; font-size: 12px; font-weight: 700; }
 
         /* Top Summary Cards Grid */
         .money-summary-grid {
@@ -309,8 +418,8 @@ function renderMoneyStyles(): void
             margin-bottom: 24px;
         }
         .money-dash-card {
-            background: #ffffff;
-            border: 1px solid #f0c590;
+            background: linear-gradient(145deg, #ffffff, #fffaf5);
+            border: 1px solid rgba(240, 197, 144, 0.82);
             border-radius: 16px;
             padding: 24px 26px;
             box-shadow: 0 8px 24px rgba(217, 130, 43, 0.07);
@@ -330,6 +439,9 @@ function renderMoneyStyles(): void
         .money-dash-card-income::before {
             background: #1f7a4d;
         }
+        .money-dash-card-income { background: linear-gradient(145deg, #ffffff, #f3fbf6); }
+        .money-dash-card-expense { background: linear-gradient(145deg, #ffffff, #fff7ef); }
+        .money-dash-card-balance { background: linear-gradient(145deg, #ffffff, #fffaf4); }
         .money-dash-card-expense::before {
             background: #c85a17;
         }
@@ -357,94 +469,97 @@ function renderMoneyStyles(): void
             margin: 8px 0 4px;
             color: #2b1800;
         }
+        .money-dash-card-income strong { color: #17673f; }
+        .money-dash-card-expense strong { color: #ae4f13; }
         .money-dash-card p {
             color: #7a634e;
             font-size: 13px;
             margin: 0;
         }
 
-        /* Two Large Circular Progress Charts Section */
-        .money-twin-rings-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 28px;
-        }
-        .money-ring-card {
-            background: linear-gradient(145deg, #ffffff 0%, #fff8f2 100%);
-            border: 1px solid #f0c590;
+        /* Collapsible category analysis */
+        .money-analysis {
+            background: #ffffff;
+            border: 1px solid rgba(240, 197, 144, 0.85);
             border-radius: 18px;
-            padding: 28px 30px;
-            box-shadow: 0 8px 24px rgba(217, 130, 43, 0.08);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            position: relative;
+            box-shadow: 0 10px 28px rgba(217, 130, 43, 0.08);
+            margin: 0 0 24px;
             overflow: hidden;
-            transition: all 220ms ease-in-out;
         }
-        .money-ring-card:hover {
-            border-color: #d9822b;
-            box-shadow: 0 14px 36px rgba(217, 130, 43, 0.18);
-            transform: translateY(-4px);
+        .money-analysis-heading { border-bottom: 1px solid rgba(240, 197, 144, 0.65); padding: 20px 24px; }
+        .money-analysis-heading small { color: #a45a1c; display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+        .money-analysis-heading h2 { color: #3b2000; font-size: 20px; margin: 3px 0 0; }
+        .money-analysis-heading p { color: #7a634e; font-size: 13px; margin: 6px 0 0; }
+        .money-analysis-grid { display: grid; gap: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .money-analysis-card { display: block; padding: 24px 28px 26px; }
+        .money-analysis-card + .money-analysis-card { border-left: 1px solid rgba(240, 197, 144, 0.65); }
+        .money-analysis-card h3 { background: #ffffff; color: #4a2800; display: block; font-size: 15px; margin: 0; padding: 0 12px; position: relative; text-align: center; z-index: 2; }
+        .money-analysis-income h3 { color: #17673f; }
+        .money-analysis-expense h3 { color: #ae4f13; }
+        .money-donut-wrap { display: block; height: 220px; margin: 14px auto 0; overflow: visible; position: relative; width: 220px; }
+        .money-category-donut { display: block; height: 220px; overflow: visible; width: 220px; }
+        .money-donut-segment { cursor: pointer; transform-origin: center; transition: filter 180ms ease, opacity 180ms ease, stroke-width 180ms ease; }
+        .money-donut-wrap:hover .money-donut-segment:not(.is-active) { opacity: 0.38; }
+        .money-donut-segment:hover, .money-donut-segment.is-active { filter: brightness(1.08) drop-shadow(0 3px 4px rgba(60, 35, 0, 0.2)); opacity: 1 !important; stroke-width: 33px; }
+        .money-donut-summary { margin: 8px 0 18px; text-align: center; }
+        .money-donut-summary span { color: #8c6843; display: block; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+        .money-donut-summary strong { color: #3b2000; display: block; font-size: 20px; margin-top: 5px; }
+        .money-category-details { border-top: 1px solid rgba(240, 197, 144, 0.55); padding-top: 14px; width: 100%; }
+        .money-category-list { display: grid; gap: 12px; }
+        .money-category-row { align-items: center; border-radius: 12px; display: grid; gap: 12px; grid-template-columns: 42px minmax(0, 1fr) 44px; padding: 7px 8px; transition: background 160ms ease, transform 160ms ease; }
+        .money-category-row:hover, .money-category-row.is-active { background: #fff7ef; transform: translateX(3px); }
+        .money-category-icon { align-items: center; background: var(--category-color); border-radius: 50%; box-shadow: 0 4px 10px color-mix(in srgb, var(--category-color) 28%, transparent); color: #ffffff; display: flex; font-size: 14px; font-weight: 900; height: 40px; justify-content: center; width: 40px; }
+        .money-category-progress > div { display: flex; gap: 14px; justify-content: space-between; }
+        .money-category-progress strong { color: #4a2800; font-size: 14px; }
+        .money-category-progress span { color: #7a634e; font-size: 13px; font-weight: 700; white-space: nowrap; }
+        .money-category-progress i { background: #f4ede6; border-radius: 999px; display: block; height: 6px; margin-top: 7px; overflow: hidden; }
+        .money-category-progress b { background: var(--category-color); border-radius: inherit; display: block; height: 100%; }
+        .money-category-row em { color: #4a2800; font-size: 14px; font-style: normal; font-weight: 900; text-align: right; }
+        .money-analysis-empty { color: #7a634e; margin: 0; padding: 75px 0; text-align: center; }
+
+        @media (min-width: 641px) {
+            .money-analysis-card { position: relative; }
+            .money-analysis-card .money-donut-wrap {
+                left: 50%;
+                margin: 0;
+                position: absolute;
+                top: -180px;
+                transform: translateX(-50%);
+                z-index: 1;
+            }
+            .money-analysis-card .money-donut-summary { margin-top: 246px; }
         }
-        .money-ring-card h3 {
-            margin: 0 0 18px;
-            font-size: 16px;
-            font-weight: 800;
-            color: #4a2800;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
+
+        /* Page controls and transaction area */
+        .exercise-action-bar,
+        .exercise-board-header {
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(217, 130, 43, 0.06);
         }
-        .money-ring-svg-wrapper {
-            position: relative;
-            width: 160px;
-            height: 160px;
-            margin-bottom: 16px;
-        }
-        .money-ring-svg-wrapper svg {
-            transform: rotate(-90deg);
-            width: 160px;
-            height: 160px;
-        }
-        .money-ring-center {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-        .money-ring-center .pct {
-            font-size: 32px;
-            font-weight: 800;
-            line-height: 1;
-            display: block;
-        }
-        .money-ring-center .pct-income {
-            color: #1f7a4d;
-        }
-        .money-ring-center .pct-expense {
-            color: #d9822b;
-        }
-        .money-ring-center .label {
-            font-size: 11px;
-            font-weight: 700;
-            color: #8c6843;
-            text-transform: uppercase;
-            margin-top: 4px;
-            display: block;
-        }
-        .money-ring-amount {
-            font-size: 20px;
-            font-weight: 800;
-            color: #2b1800;
-            margin-top: 4px;
-        }
-        .money-ring-subtext {
-            font-size: 13px;
-            color: #7a634e;
-            margin-top: 2px;
+        .exercise-action-bar { background: linear-gradient(135deg, #fffdf9, #fff6ec); }
+        .exercise-board-header { background: transparent; border: 0; box-shadow: none; margin-bottom: 14px; padding-left: 0; padding-right: 0; }
+        .exercise-action-bar .summary-label,
+        .exercise-board-header .summary-label { color: #a45a1c; }
+        .exercise-action-bar strong,
+        .exercise-board-header h2 { color: #3b2000; }
+        .table-panel { border: 1px solid rgba(240, 197, 144, 0.82); border-radius: 16px; box-shadow: 0 10px 28px rgba(217, 130, 43, 0.07); }
+        .money-table td { border-color: rgba(240, 197, 144, 0.48) !important; }
+        .money-table td:first-child { color: #8c6843; font-weight: 700; }
+        .money-table tbody tr { transition: background 160ms ease; }
+
+        @media (max-width: 640px) {
+            .money-theme-hero { grid-template-columns: 1fr; padding: 26px; }
+            .money-overview-card { min-width: 0; }
+            .money-theme-hero::after { width: 100%; }
+            .money-summary-grid { gap: 14px; }
+            .money-dash-card { padding: 20px; }
+            .money-dash-card strong { font-size: 26px; }
+            .money-analysis-grid { grid-template-columns: 1fr; }
+            .money-analysis-card { padding: 22px 20px; }
+            .money-analysis-card + .money-analysis-card { border-left: 0; border-top: 1px solid rgba(240, 197, 144, 0.65); }
+            .money-donut-wrap { height: 220px; width: 220px; }
+            .money-category-row { grid-template-columns: 38px minmax(0, 1fr) 38px; }
+            .money-category-icon { height: 36px; width: 36px; }
         }
 
         /* Modern Segmented Control for Income/Expense Toggle */

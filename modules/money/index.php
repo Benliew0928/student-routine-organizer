@@ -81,20 +81,25 @@ if ($filters['sort'] !== 'newest') {
     $activeFilterLabels[] = 'Sort: ' . (moneySortOptions()[$filters['sort']] ?? $filters['sort']);
 }
 
-$circumference = 351.86; // 2 * PI * 56
-$incomeDashOffset = round($circumference * (1 - ($summary['income_pct'] / 100)), 2);
-$expenseDashOffset = round($circumference * (1 - ($summary['expense_pct'] / 100)), 2);
-
 $pageTitle = 'Money Tracker';
 require __DIR__ . '/../../includes/header.php';
 renderMoneyStyles();
 ?>
 
 <section class="money-theme-hero">
-    <div class="exercise-hero-copy">
+    <div class="money-hero-copy">
         <p class="eyebrow">Financial Tracker</p>
         <h1>Money Tracker</h1>
         <p class="hero-copy">Manage your income, track daily expenses, and maintain a clear budget balance.</p>
+        <div class="money-hero-metrics" aria-label="Money overview">
+            <span><strong>RM <?= number_format($summary['total_income'], 2); ?></strong> income</span>
+            <span><strong>RM <?= number_format($summary['total_expense'], 2); ?></strong> expense</span>
+        </div>
+    </div>
+    <div class="money-overview-card" aria-label="Money overview">
+        <span class="summary-label">Available Balance</span>
+        <strong>RM <?= number_format($summary['balance'], 2); ?></strong>
+        <small><?= number_format($summary['total_count']); ?> total transaction<?= $summary['total_count'] === 1 ? '' : 's'; ?></small>
     </div>
 </section>
 
@@ -117,54 +122,55 @@ renderMoneyStyles();
     </article>
 </section>
 
-<!-- Two Large Circular Progress Charts Section -->
-<section class="money-twin-rings-grid" aria-label="Flow percentage ring charts">
-    <article class="money-ring-card">
-        <h3>Income Ratio</h3>
-        <div class="money-ring-svg-wrapper">
-            <svg viewBox="0 0 140 140">
-                <circle cx="70" cy="70" r="56" fill="transparent" stroke="#e0f2e9" stroke-width="12" />
-                <circle cx="70" cy="70" r="56" fill="transparent" stroke="url(#greenGrad)" stroke-width="12" 
-                        stroke-dasharray="351.86" stroke-dashoffset="<?= $incomeDashOffset; ?>" stroke-linecap="round" />
-                <defs>
-                    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#2ec4b6" />
-                        <stop offset="100%" stop-color="#1f7a4d" />
-                    </linearGradient>
-                </defs>
-            </svg>
-            <div class="money-ring-center">
-                <span class="pct pct-income"><?= $summary['income_pct']; ?>%</span>
-                <span class="label">of Total</span>
-            </div>
-        </div>
-        <div class="money-ring-amount">RM <?= number_format($summary['total_income'], 2); ?></div>
-        <div class="money-ring-subtext">Total Cash Inflow</div>
-    </article>
-
-    <article class="money-ring-card">
-        <h3>Expense Ratio</h3>
-        <div class="money-ring-svg-wrapper">
-            <svg viewBox="0 0 140 140">
-                <circle cx="70" cy="70" r="56" fill="transparent" stroke="#ffe5cc" stroke-width="12" />
-                <circle cx="70" cy="70" r="56" fill="transparent" stroke="url(#orangeGrad)" stroke-width="12" 
-                        stroke-dasharray="351.86" stroke-dashoffset="<?= $expenseDashOffset; ?>" stroke-linecap="round" />
-                <defs>
-                    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#d9822b" />
-                        <stop offset="100%" stop-color="#e65100" />
-                    </linearGradient>
-                </defs>
-            </svg>
-            <div class="money-ring-center">
-                <span class="pct pct-expense"><?= $summary['expense_pct']; ?>%</span>
-                <span class="label">of Total</span>
-            </div>
-        </div>
-        <div class="money-ring-amount">RM <?= number_format($summary['total_expense'], 2); ?></div>
-        <div class="money-ring-subtext">Total Cash Outflow</div>
-    </article>
+<?php if (false): // Category analysis is available on analysis.php. ?>
+$chartCircumference = 439.82; // 2 * PI * 70
+$chartOffset = 0.0;
+$chartColors = ['#4baed8', '#cf76bc', '#f2a85a', '#52bf95', '#9b8ce1', '#e88282', '#8ecbd4'];
+$categoryIcons = ['Food' => '🍜', 'Transport' => '🚌', 'Shopping' => '🛍', 'Bills' => '🧾', 'Education' => '📚', 'Entertainment' => '🎬', 'Healthcare' => '✚', 'Salary' => '💼', 'Allowance' => '◎', 'Freelance' => '⌘', 'Others' => '•'];
+?>
+<section class="money-analysis" aria-label="Income and expense category analysis">
+    <div class="money-analysis-heading"><small>Category insights</small><h2>Money Analysis</h2></div>
+    <div class="money-analysis-grid">
+        <?php foreach (['income' => ['label' => 'Income', 'items' => $incomeBreakdown, 'total' => $summary['total_income']], 'expense' => ['label' => 'Expense', 'items' => $expenseBreakdown, 'total' => $summary['total_expense']]] as $type => $analysis): ?>
+            <?php $chartOffset = 0.0; ?>
+            <article class="money-analysis-card money-analysis-<?= $type; ?>">
+                <h3><?= $analysis['label']; ?> by Category</h3>
+                <?php if ($analysis['items']): ?>
+                    <div class="money-donut-wrap">
+                        <svg class="money-category-donut" viewBox="0 0 200 200" role="img" aria-label="<?= $analysis['label']; ?> breakdown by category">
+                            <?php foreach ($analysis['items'] as $index => $item): ?>
+                                <?php
+                                $percentage = $analysis['total'] > 0 ? ((float) $item['total'] / $analysis['total']) * 100 : 0;
+                                $segmentLength = max(0, ($chartCircumference * ($percentage / 100)) - 3);
+                                $color = $chartColors[$index % count($chartColors)];
+                                ?>
+                                <circle class="money-donut-segment" data-analysis="<?= $type; ?>" data-category="<?= escapeOutput($item['category']); ?>" cx="100" cy="100" r="70" fill="none" stroke="<?= $color; ?>" stroke-width="30" stroke-linecap="butt" stroke-dasharray="<?= $segmentLength; ?> <?= $chartCircumference; ?>" stroke-dashoffset="<?= -$chartOffset; ?>" transform="rotate(-90 100 100)" />
+                                <?php $chartOffset += $chartCircumference * ($percentage / 100); ?>
+                            <?php endforeach; ?>
+                        </svg>
+                    </div>
+                    <p class="money-donut-summary"><span>Total <?= strtolower($analysis['label']); ?></span><strong>RM <?= number_format($analysis['total'], 2); ?></strong></p>
+                    <details class="money-category-details">
+                        <summary>Show category details</summary>
+                        <div class="money-category-list" aria-label="<?= $analysis['label']; ?> category totals">
+                            <?php foreach ($analysis['items'] as $index => $item): ?>
+                                <?php $percentage = $analysis['total'] > 0 ? ((float) $item['total'] / $analysis['total']) * 100 : 0; ?>
+                                <div class="money-category-row" data-analysis="<?= $type; ?>" data-category="<?= escapeOutput($item['category']); ?>" style="--category-color: <?= $chartColors[$index % count($chartColors)]; ?>;">
+                                    <span class="money-category-icon"><?= $categoryIcons[$item['category']] ?? '•'; ?></span>
+                                    <div class="money-category-progress"><div><strong><?= escapeOutput($item['category']); ?></strong><span>RM <?= number_format((float) $item['total'], 2); ?></span></div><i><b style="width: <?= round($percentage, 1); ?>%"></b></i></div>
+                                    <em><?= round($percentage); ?>%</em>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </details>
+                <?php else: ?>
+                    <p class="money-analysis-empty">No <?= strtolower($analysis['label']); ?> records yet.</p>
+                <?php endif; ?>
+            </article>
+        <?php endforeach; ?>
+    </div>
 </section>
+<?php endif; ?>
 
 <section class="exercise-action-bar" aria-label="Money actions">
     <div>
@@ -179,6 +185,7 @@ renderMoneyStyles();
                 <span class="filter-count"><?= count($activeFilterLabels); ?></span>
             <?php endif; ?>
         </button>
+        <a class="button" href="<?= BASE_URL; ?>/modules/money/analysis.php">View Analysis</a>
         <a class="button" href="<?= BASE_URL; ?>/modules/money/index.php<?= $currentQuery !== '' ? '?' . escapeOutput($currentQuery . '&export=csv') : '?export=csv'; ?>">Export CSV</a>
         <a class="button primary" href="<?= BASE_URL; ?>/modules/money/create.php">Add Transaction</a>
     </div>
@@ -239,7 +246,7 @@ renderMoneyStyles();
     <section class="exercise-board-header">
         <div>
             <p class="summary-label">Transaction Log</p>
-            <h2><?= number_format(count($records)); ?> record<?= count($records) === 1 ? '' : 's'; ?> showing</h2>
+            <h2><?= number_format(count($records)); ?> transaction<?= count($records) === 1 ? '' : 's'; ?> shown</h2>
         </div>
         <?php if ($activeFilterLabels): ?>
             <div class="active-filter-list" aria-label="Active filters">
@@ -301,5 +308,16 @@ renderMoneyStyles();
         </section>
     <?php endif; ?>
 <?php endif; ?>
+
+<script>
+document.querySelectorAll('.money-donut-segment, .money-category-row').forEach((item) => {
+    const category = item.dataset.category;
+    const analysis = item.dataset.analysis;
+    const relatedItems = document.querySelectorAll('[data-analysis="' + CSS.escape(analysis) + '"][data-category="' + CSS.escape(category) + '"]');
+
+    item.addEventListener('mouseenter', () => relatedItems.forEach((related) => related.classList.add('is-active')));
+    item.addEventListener('mouseleave', () => relatedItems.forEach((related) => related.classList.remove('is-active')));
+});
+</script>
 
 <?php require __DIR__ . '/../../includes/footer.php'; ?>
