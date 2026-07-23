@@ -359,7 +359,10 @@ Goal: Complete full CRUD for journal entries.
 - [x] Add filters by mood and date range.
 - [x] Add newest/oldest sorting.
 - [x] Add five built-in writing templates and free-text mood suggestions.
-- [x] Add live word/character counts and user-scoped draft recovery.
+- [x] Add live word/character counts.
+- [x] Store unfinished Journal drafts in the database.
+- [x] Resume, publish, and delete owned drafts across authenticated devices.
+- [x] Show truthful autosave, retry, and navigation-protection states.
 - [x] Verify safe output, two-user isolation, responsive layout, and dashboard integration.
 
 ### Done Criteria

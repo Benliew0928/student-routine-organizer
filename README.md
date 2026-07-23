@@ -54,5 +54,6 @@ Implemented So Far:
 - Admin system summaries
 - Exercise Tracker CRUD
 - Exercise summaries, filters, sorting, CSV export, and CSRF-protected forms
+- Database-backed Journal drafts with autosave, cross-device resume, and safe publication
 - Twilight Conservatory Habit Tracker
 - Reusable quest blueprints, daily quest logs, realm progress, Momentum Trail, archive/restore, and CSRF-protected forms
