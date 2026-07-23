@@ -210,18 +210,18 @@ test('journal delete page requires post csrf and scoped deletion', function (): 
     assertSameValue(false, str_contains($source, 'will be implemented'));
 });
 
-test('journal javascript supports templates counts and scoped drafts', function (): void {
-    $source = file_get_contents(__DIR__ . '/../assets/js/app.js');
+test('journal uses a dedicated page script', function (): void {
+    $source = @file_get_contents(__DIR__ . '/../assets/js/journal.js');
+    $create = file_get_contents(__DIR__ . '/../modules/journal/create.php');
+    $footer = file_get_contents(__DIR__ . '/../includes/footer.php');
 
     assertTrueValue(is_string($source));
     assertTrueValue(str_contains($source, '[data-template-picker]'));
     assertTrueValue(str_contains($source, '[data-journal-editor]'));
-    assertTrueValue(str_contains($source, '[data-journal-draft-restore]'));
-    assertTrueValue(str_contains($source, '[data-journal-draft-discard]'));
-    assertTrueValue(str_contains($source, '[data-journal-saved]'));
-    assertTrueValue(str_contains($source, 'localStorage.setItem'));
-    assertTrueValue(str_contains($source, 'localStorage.removeItem'));
     assertTrueValue(str_contains($source, 'window.confirm'));
+    assertSameValue(false, str_contains($source, 'localStorage'));
+    assertTrueValue(str_contains($create, '/assets/js/journal.js'));
+    assertTrueValue(str_contains($footer, '$pageScripts'));
 });
 
 test('logout link exposes the current user for scoped draft cleanup', function (): void {

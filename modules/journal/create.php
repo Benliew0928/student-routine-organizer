@@ -55,6 +55,7 @@ try {
 $selectedTemplateKey = array_key_exists($data['template_key'], $templates) ? $data['template_key'] : 'blank';
 $draftKey = 'journalDraft:' . $userId . ':create';
 $pageTitle = 'Write Journal Entry';
+$pageScripts = [BASE_URL . '/assets/js/journal.js'];
 require __DIR__ . '/../../includes/header.php';
 ?>
 
