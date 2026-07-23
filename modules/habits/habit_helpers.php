@@ -4,10 +4,10 @@ declare(strict_types=1);
 function habitRealmOptions(): array
 {
     return [
-        'focus' => ['label' => 'Focus Garden', 'symbol' => '◆', 'description' => 'Study, reading, and assignments.'],
-        'energy' => ['label' => 'Energy Lab', 'symbol' => '✦', 'description' => 'Water, movement, sleep, and recovery.'],
-        'mind' => ['label' => 'Mind Space', 'symbol' => '◌', 'description' => 'Reflection, calm, and connection.'],
-        'life_admin' => ['label' => 'Life Admin', 'symbol' => '▦', 'description' => 'Planning, budgeting, and practical care.'],
+        'focus' => ['label' => 'Focus Garden', 'icon' => 'bi-leaf', 'description' => 'Study, reading, and assignments.'],
+        'energy' => ['label' => 'Energy Grove', 'icon' => 'bi-lightning-charge', 'description' => 'Water, movement, sleep, and recovery.'],
+        'mind' => ['label' => 'Mind Clearing', 'icon' => 'bi-wind', 'description' => 'Reflection, calm, and connection.'],
+        'life_admin' => ['label' => 'Life Garden', 'icon' => 'bi-calendar2-check', 'description' => 'Planning, budgeting, and practical care.'],
     ];
 }
 

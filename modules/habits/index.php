@@ -80,15 +80,14 @@ require __DIR__ . '/../../includes/header.php';
             <h1 id="sanctuaryTitle">Good evening, <?= escapeOutput(currentUserName()); ?>.</h1>
             <p class="sanctuary-intro">One deliberate action is enough to keep your rhythm alive.</p>
             <div class="sanctuary-hero-actions">
-                <a class="sanctuary-button sanctuary-button-primary" href="#todayQuests">See today’s quests <span aria-hidden="true">↓</span></a>
-                <a class="sanctuary-text-link" href="<?= BASE_URL; ?>/modules/habits/manage.php">Manage blueprints</a>
+                <a class="sanctuary-button sanctuary-button-primary" href="#todayQuests">See today’s quests <i class="bi bi-arrow-down" aria-hidden="true"></i></a>
+                <a class="sanctuary-text-link" href="<?= BASE_URL; ?>/modules/habits/manage.php"><i class="bi bi-journal-bookmark" aria-hidden="true"></i> Manage blueprints</a>
             </div>
         </div>
         <div class="sanctuary-orbit" aria-label="<?= $todayCompleted; ?> of <?= $todayTotal; ?> quests completed today">
             <svg viewBox="0 0 180 180" role="img" aria-hidden="true">
                 <circle class="orbit-track" cx="90" cy="90" r="71"></circle>
                 <circle class="orbit-progress" cx="90" cy="90" r="71" style="--orbit-progress: <?= $todayTotal ? (int) round($todayCompleted / $todayTotal * 100) : 0; ?>"></circle>
-                <path d="M90 47 96 78 128 90 96 102 90 133 84 102 52 90 84 78Z" class="orbit-star"></path>
             </svg>
             <div><strong><?= $todayCompleted; ?><span>/<?= $todayTotal; ?></span></strong><small>cared for today</small></div>
         </div>
@@ -100,18 +99,8 @@ require __DIR__ . '/../../includes/header.php';
         <nav class="realm-grid" aria-label="Filter quests by sanctuary realm">
             <?php foreach ($realmStats as $realmKey => $stat): ?>
                 <a class="realm-card realm-<?= escapeOutput($realmKey); ?> realm-<?= escapeOutput($stat['state']); ?> <?= $realm === $realmKey ? 'is-selected' : ''; ?>" href="<?= BASE_URL; ?>/modules/habits/index.php?realm=<?= escapeOutput($realmKey); ?>#todayQuests">
-                    <span class="realm-scene" aria-hidden="true">
-                        <?php if ($realmKey === 'focus'): ?>
-                            <svg viewBox="0 0 120 82"><path d="M20 70h80M44 70V43h32v27M51 43V28h18v15M33 70V55h11m32 15V55h11M25 25c10-14 21-10 24 4-13 2-20-3-24-4Zm70 0c-10-14-21-10-24 4 13 2 20-3 24-4Z"/></svg>
-                        <?php elseif ($realmKey === 'energy'): ?>
-                            <svg viewBox="0 0 120 82"><path d="M60 12v15m-27-4 10 12m44-12-10 12M20 50h21l8-15 15 29 11-21h25M29 68h62"/></svg>
-                        <?php elseif ($realmKey === 'mind'): ?>
-                            <svg viewBox="0 0 120 82"><path d="M18 63c16-27 34-27 44 0 10-27 28-27 40 0M33 26h1m16-12h1m17 16h1m20-8h1M26 70h68"/></svg>
-                        <?php else: ?>
-                            <svg viewBox="0 0 120 82"><path d="M25 68V28h70v40M35 28v-9h50v9M38 42h17m10 0h17M38 54h17m10 0h17M18 68h84"/></svg>
-                        <?php endif; ?>
-                    </span>
-                    <span class="realm-card-top"><span><?= escapeOutput($stat['symbol']); ?> <?= escapeOutput($stat['label']); ?></span><strong><?= $stat['percentage']; ?>%</strong></span>
+                    <span class="realm-scene" aria-hidden="true"><i class="bi <?= escapeOutput($stat['icon']); ?>"></i><span class="realm-scene-ring"></span></span>
+                    <span class="realm-card-top"><span><i class="bi <?= escapeOutput($stat['icon']); ?>" aria-hidden="true"></i> <?= escapeOutput($stat['label']); ?></span><strong><?= $stat['percentage']; ?>%</strong></span>
                     <span class="realm-meter"><i style="--realm-progress: <?= $stat['percentage']; ?>%"></i></span>
                     <span class="realm-card-bottom"><?= $stat['completed']; ?> of <?= $stat['planned']; ?> this week <em><?= escapeOutput(ucfirst($stat['state'])); ?></em></span>
                 </a>
@@ -126,13 +115,13 @@ require __DIR__ . '/../../includes/header.php';
                 </div>
                 <div class="quest-heading-actions">
                     <?php if ($realm !== ''): ?><a class="sanctuary-text-link" href="<?= BASE_URL; ?>/modules/habits/index.php#todayQuests">Show all realms</a><?php endif; ?>
-                    <a class="sanctuary-button sanctuary-button-quiet" href="<?= BASE_URL; ?>/modules/habits/create.php">+ New quest</a>
+                    <a class="sanctuary-button sanctuary-button-quiet" href="<?= BASE_URL; ?>/modules/habits/create.php"><i class="bi bi-plus-lg" aria-hidden="true"></i> New quest</a>
                 </div>
             </div>
 
             <?php if (!$allTodayQuests): ?>
                 <article class="sanctuary-empty">
-                    <span class="empty-orb" aria-hidden="true">✦</span>
+                    <span class="empty-orb" aria-hidden="true"><i class="bi bi-flower1"></i></span>
                     <div><p class="sanctuary-kicker">The conservatory is quiet</p><h2>Plant your first small promise.</h2><p>Start with a simple habit. It will become a daily quest, a visible trail, and part of your weekly story.</p></div>
                     <a class="sanctuary-button sanctuary-button-primary" href="<?= BASE_URL; ?>/modules/habits/create.php">Create a quest blueprint</a>
                 </article>
@@ -145,25 +134,25 @@ require __DIR__ . '/../../includes/header.php';
                         <article class="quest-card quest-<?= escapeOutput($quest['realm']); ?> status-<?= escapeOutput($quest['completion_status']); ?>">
                             <div class="quest-card-glow" aria-hidden="true"></div>
                             <div class="quest-card-main">
-                                <div class="quest-realm"><span><?= escapeOutput($realmMeta['symbol']); ?></span><?= escapeOutput($realmMeta['label']); ?></div>
+                                <div class="quest-realm"><span><i class="bi <?= escapeOutput($realmMeta['icon']); ?>" aria-hidden="true"></i></span><?= escapeOutput($realmMeta['label']); ?></div>
                                 <h3><?= escapeOutput($quest['habit_name']); ?></h3>
                                 <p class="quest-motivation"><?= $quest['motivation'] !== '' && $quest['motivation'] !== null ? escapeOutput($quest['motivation']) : escapeOutput($realmMeta['description']); ?></p>
-                                <div class="quest-meta"><span><?= escapeOutput(habitFormatTime($quest['preferred_time'])); ?></span><?php if ($quest['duration_minutes']): ?><span><?= (int) $quest['duration_minutes']; ?> min</span><?php endif; ?><span><?= (int) $streak['current']; ?>-day rhythm</span></div>
+                                <div class="quest-meta"><span><i class="bi bi-clock" aria-hidden="true"></i><?= escapeOutput(habitFormatTime($quest['preferred_time'])); ?></span><?php if ($quest['duration_minutes']): ?><span><i class="bi bi-hourglass-split" aria-hidden="true"></i><?= (int) $quest['duration_minutes']; ?> min</span><?php endif; ?><span><i class="bi bi-fire" aria-hidden="true"></i><?= (int) $streak['current']; ?>-day rhythm</span></div>
                             </div>
                             <div class="quest-card-actions">
                                 <?php if ($quest['completion_status'] === 'scheduled'): ?>
                                     <form method="post" action="<?= BASE_URL; ?>/modules/habits/index.php<?= $realm !== '' ? '?realm=' . escapeOutput($realm) : ''; ?>">
                                         <?= csrfInput(); ?><input type="hidden" name="log_id" value="<?= (int) $quest['log_id']; ?>"><input type="hidden" name="completion_status" value="completed"><input type="hidden" name="realm" value="<?= escapeOutput($realm); ?>">
-                                        <button class="sanctuary-button sanctuary-button-complete" type="submit">Complete quest <span aria-hidden="true">✓</span></button>
+                                        <button class="sanctuary-button sanctuary-button-complete" type="submit">Complete quest <i class="bi bi-check-lg" aria-hidden="true"></i></button>
                                     </form>
                                 <?php else: ?>
                                     <span class="quest-status-note"><?= escapeOutput(habitLogStatusOptions()[$quest['completion_status']]); ?></span>
                                 <?php endif; ?>
-                                <button class="sanctuary-icon-button" type="button" data-quest-adjust data-dialog-id="questDialog<?= (int) $quest['log_id']; ?>" aria-label="Adjust <?= escapeOutput($quest['habit_name']); ?>">•••</button>
+                                <button class="sanctuary-icon-button" type="button" data-quest-adjust data-dialog-id="questDialog<?= (int) $quest['log_id']; ?>" aria-label="Adjust <?= escapeOutput($quest['habit_name']); ?>"><i class="bi bi-three-dots" aria-hidden="true"></i></button>
                             </div>
                         </article>
                         <dialog class="quest-dialog" id="questDialog<?= (int) $quest['log_id']; ?>" aria-labelledby="questDialogTitle<?= (int) $quest['log_id']; ?>">
-                            <form method="dialog" class="dialog-close-form"><button class="sanctuary-icon-button" aria-label="Close">×</button></form>
+                            <form method="dialog" class="dialog-close-form"><button class="sanctuary-icon-button" aria-label="Close"><i class="bi bi-x-lg" aria-hidden="true"></i></button></form>
                             <div class="quest-dialog-copy"><p class="sanctuary-kicker"><?= escapeOutput($realmMeta['label']); ?></p><h2 id="questDialogTitle<?= (int) $quest['log_id']; ?>"><?= escapeOutput($quest['habit_name']); ?></h2><p>Adjust today’s quest with kindness. This will update your Momentum Trail.</p></div>
                             <form method="post" action="<?= BASE_URL; ?>/modules/habits/index.php<?= $realm !== '' ? '?realm=' . escapeOutput($realm) : ''; ?>" class="quest-adjust-form">
                                 <?= csrfInput(); ?><input type="hidden" name="log_id" value="<?= (int) $quest['log_id']; ?>"><input type="hidden" name="realm" value="<?= escapeOutput($realm); ?>">
@@ -182,7 +171,7 @@ require __DIR__ . '/../../includes/header.php';
                     <div class="completed-heading"><h3 id="completedTitle">Cared for today</h3><span><?= count($completedQuests); ?> completed</span></div>
                     <div class="completed-quest-list">
                         <?php foreach ($completedQuests as $quest): ?>
-                            <a href="<?= BASE_URL; ?>/modules/habits/log.php?id=<?= (int) $quest['log_id']; ?>" class="completed-quest"><span><?= escapeOutput(habitRealmOptions()[$quest['realm']]['symbol']); ?></span><strong><?= escapeOutput($quest['habit_name']); ?></strong><em>✓</em></a>
+                            <a href="<?= BASE_URL; ?>/modules/habits/log.php?id=<?= (int) $quest['log_id']; ?>" class="completed-quest"><span><i class="bi <?= escapeOutput(habitRealmOptions()[$quest['realm']]['icon']); ?>" aria-hidden="true"></i></span><strong><?= escapeOutput($quest['habit_name']); ?></strong><em><i class="bi bi-check-circle-fill" aria-hidden="true"></i></em></a>
                         <?php endforeach; ?>
                     </div>
                 </section>
@@ -190,9 +179,9 @@ require __DIR__ . '/../../includes/header.php';
         </section>
 
         <section class="sanctuary-story" aria-labelledby="weeklyStoryTitle">
-            <div class="story-spark" aria-hidden="true">✦</div>
+            <div class="story-spark" aria-hidden="true"><i class="bi bi-tree"></i></div>
             <div><p class="sanctuary-kicker">Your weekly story</p><h2 id="weeklyStoryTitle"><?= escapeOutput($weeklyStory); ?></h2><p>Patterns matter more than perfection. Your Momentum Trail keeps the evidence.</p></div>
-            <a class="sanctuary-button sanctuary-button-quiet" href="<?= BASE_URL; ?>/modules/habits/journey.php">Open Momentum Trail <span aria-hidden="true">→</span></a>
+            <a class="sanctuary-button sanctuary-button-quiet" href="<?= BASE_URL; ?>/modules/habits/journey.php">Open Momentum Trail <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
         </section>
     <?php endif; ?>
 </section>

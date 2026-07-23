@@ -182,3 +182,134 @@ document.querySelectorAll('[data-quest-form]').forEach((form) => {
         });
     });
 });
+
+document.querySelectorAll('[data-time-picker]').forEach((picker) => {
+    if (!(picker instanceof HTMLElement)) {
+        return;
+    }
+
+    const valueField = picker.querySelector('[data-time-value]');
+    const hourField = picker.querySelector('[data-time-hour]');
+    const minuteField = picker.querySelector('[data-time-minute]');
+    const periodButtons = [...picker.querySelectorAll('[data-time-period]')].filter((button) => button instanceof HTMLButtonElement);
+    const clearButton = picker.querySelector('[data-time-clear]');
+    const form = picker.closest('form');
+    let period = 'AM';
+
+    if (!(valueField instanceof HTMLInputElement) || !(hourField instanceof HTMLInputElement) || !(minuteField instanceof HTMLInputElement)) {
+        return;
+    }
+
+    const updatePeriodButtons = () => {
+        periodButtons.forEach((button) => {
+            const isActive = button.dataset.timePeriod === period;
+            button.setAttribute('aria-pressed', String(isActive));
+        });
+    };
+
+    const clearInvalidState = () => {
+        picker.classList.remove('has-invalid');
+        hourField.removeAttribute('aria-invalid');
+        minuteField.removeAttribute('aria-invalid');
+    };
+
+    const showInvalidState = () => {
+        picker.classList.add('has-invalid');
+        hourField.setAttribute('aria-invalid', 'true');
+        minuteField.setAttribute('aria-invalid', 'true');
+    };
+
+    const syncValue = () => {
+        const hourText = hourField.value.trim();
+        const minuteText = minuteField.value.trim();
+
+        if (!hourText && !minuteText) {
+            valueField.value = '';
+            clearInvalidState();
+            return true;
+        }
+
+        const hour = Number(hourText);
+        const minute = Number(minuteText);
+        const isValid = Number.isInteger(hour) && Number.isInteger(minute) && hour >= 1 && hour <= 12 && minute >= 0 && minute <= 59;
+
+        if (!isValid) {
+            valueField.value = '';
+            showInvalidState();
+            return false;
+        }
+
+        const hour24 = period === 'PM' ? (hour % 12) + 12 : hour === 12 ? 0 : hour;
+        valueField.value = `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        clearInvalidState();
+        return true;
+    };
+
+    const normaliseField = (field, maximum) => {
+        const value = Number(field.value);
+        if (field.value.trim() && Number.isInteger(value) && value >= 0 && value <= maximum) {
+            field.value = String(value).padStart(2, '0');
+        }
+    };
+
+    const hydrateFromValue = () => {
+        const match = /^(\d{2}):(\d{2})$/.exec(valueField.value);
+        if (!match) {
+            updatePeriodButtons();
+            return;
+        }
+
+        const hour24 = Number(match[1]);
+        const minute = Number(match[2]);
+        period = hour24 >= 12 ? 'PM' : 'AM';
+        const hour12 = hour24 % 12 || 12;
+        hourField.value = String(hour12).padStart(2, '0');
+        minuteField.value = String(minute).padStart(2, '0');
+        updatePeriodButtons();
+        syncValue();
+    };
+
+    [hourField, minuteField].forEach((field) => {
+        field.addEventListener('input', () => {
+            field.value = field.value.replace(/\D/g, '').slice(0, 2);
+            syncValue();
+        });
+
+        field.addEventListener('blur', () => {
+            normaliseField(hourField, 12);
+            normaliseField(minuteField, 59);
+            syncValue();
+        });
+    });
+
+    periodButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            period = button.dataset.timePeriod === 'PM' ? 'PM' : 'AM';
+            updatePeriodButtons();
+            syncValue();
+        });
+    });
+
+    if (clearButton instanceof HTMLButtonElement) {
+        clearButton.addEventListener('click', () => {
+            hourField.value = '';
+            minuteField.value = '';
+            valueField.value = '';
+            period = 'AM';
+            updatePeriodButtons();
+            clearInvalidState();
+            hourField.focus();
+        });
+    }
+
+    if (form instanceof HTMLFormElement) {
+        form.addEventListener('submit', (event) => {
+            if (!syncValue()) {
+                event.preventDefault();
+                (hourField.value.trim() ? minuteField : hourField).focus();
+            }
+        });
+    }
+
+    hydrateFromValue();
+});
