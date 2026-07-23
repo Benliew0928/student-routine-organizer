@@ -250,4 +250,44 @@ test('journal stylesheet defines all major responsive components', function (): 
     }
 });
 
+test('draft validation allows incomplete fields', function (): void {
+    $errors = journalValidateDraftData([
+        'title' => '',
+        'content' => '',
+        'mood_status' => '',
+        'entry_date' => '',
+        'template_key' => 'blank',
+    ]);
+
+    assertSameValue([], $errors);
+});
+
+test('draft validation enforces limits date and template allow list', function (): void {
+    $errors = journalValidateDraftData([
+        'title' => str_repeat('T', 121),
+        'content' => str_repeat('C', 10001),
+        'mood_status' => str_repeat('M', 51),
+        'entry_date' => '2026-02-30',
+        'template_key' => 'untrusted',
+    ]);
+
+    assertTrueValue(in_array('Draft title must be 120 characters or fewer.', $errors, true));
+    assertTrueValue(in_array('Draft content must be 10,000 characters or fewer.', $errors, true));
+    assertTrueValue(in_array('Draft mood must be 50 characters or fewer.', $errors, true));
+    assertTrueValue(in_array('Please choose a valid draft date.', $errors, true));
+    assertTrueValue(in_array('Please choose a valid journal template.', $errors, true));
+});
+
+test('meaningful draft ignores the default date alone', function (): void {
+    $blank = journalDefaultFormData();
+    assertSameValue(false, journalDraftHasMeaningfulContent($blank));
+
+    $blank['title'] = 'A thought';
+    assertTrueValue(journalDraftHasMeaningfulContent($blank));
+
+    $blank['title'] = '';
+    $blank['template_key'] = 'gratitude';
+    assertTrueValue(journalDraftHasMeaningfulContent($blank));
+});
+
 finishTests();

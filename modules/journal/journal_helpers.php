@@ -107,6 +107,46 @@ function journalValidateData(array $data): array
     return $errors;
 }
 
+function journalValidateDraftData(array $data): array
+{
+    $errors = [];
+    $title = (string) ($data['title'] ?? '');
+    $content = (string) ($data['content'] ?? '');
+    $mood = (string) ($data['mood_status'] ?? '');
+    $entryDate = (string) ($data['entry_date'] ?? '');
+    $templateKey = (string) ($data['template_key'] ?? 'blank');
+
+    if (mb_strlen($title) > 120) {
+        $errors[] = 'Draft title must be 120 characters or fewer.';
+    }
+
+    if (mb_strlen($content) > 10000) {
+        $errors[] = 'Draft content must be 10,000 characters or fewer.';
+    }
+
+    if (mb_strlen($mood) > 50) {
+        $errors[] = 'Draft mood must be 50 characters or fewer.';
+    }
+
+    if ($entryDate !== '' && !journalIsValidDate($entryDate)) {
+        $errors[] = 'Please choose a valid draft date.';
+    }
+
+    if (!array_key_exists($templateKey, journalTemplateOptions())) {
+        $errors[] = 'Please choose a valid journal template.';
+    }
+
+    return $errors;
+}
+
+function journalDraftHasMeaningfulContent(array $data): bool
+{
+    return trim((string) ($data['title'] ?? '')) !== ''
+        || trim((string) ($data['content'] ?? '')) !== ''
+        || trim((string) ($data['mood_status'] ?? '')) !== ''
+        || (string) ($data['template_key'] ?? 'blank') !== 'blank';
+}
+
 function journalFiltersFromRequest(array $source): array
 {
     $filters = [
@@ -203,6 +243,137 @@ function journalLoadForUser(mysqli $connection, int $journalId, int $userId): ?a
     $entry = $stmt->get_result()->fetch_assoc();
 
     return $entry ?: null;
+}
+
+function journalLoadDraftForUser(mysqli $connection, int $draftId, int $userId): ?array
+{
+    $stmt = $connection->prepare(
+        'SELECT draft_id, user_id, title, content, mood_status, entry_date, template_key, created_at, updated_at '
+        . 'FROM journal_drafts WHERE draft_id = ? AND user_id = ? LIMIT 1'
+    );
+    $stmt->bind_param('ii', $draftId, $userId);
+    $stmt->execute();
+    $draft = $stmt->get_result()->fetch_assoc();
+
+    return $draft ?: null;
+}
+
+function journalListDraftsForUser(mysqli $connection, int $userId): array
+{
+    $stmt = $connection->prepare(
+        'SELECT draft_id, user_id, title, content, mood_status, entry_date, template_key, created_at, updated_at '
+        . 'FROM journal_drafts WHERE user_id = ? ORDER BY updated_at DESC, draft_id DESC'
+    );
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function journalSaveDraft(
+    mysqli $connection,
+    int $userId,
+    ?int $draftId,
+    array $data
+): ?int {
+    $title = (string) ($data['title'] ?? '');
+    $content = (string) ($data['content'] ?? '');
+    $mood = (string) ($data['mood_status'] ?? '');
+    $entryDate = (string) ($data['entry_date'] ?? '');
+    $dateValue = $entryDate === '' ? null : $entryDate;
+    $templateKey = (string) ($data['template_key'] ?? 'blank');
+
+    if ($draftId === null) {
+        $stmt = $connection->prepare(
+            'INSERT INTO journal_drafts '
+            . '(user_id, title, content, mood_status, entry_date, template_key) '
+            . 'VALUES (?, ?, ?, ?, ?, ?)'
+        );
+        $stmt->bind_param('isssss', $userId, $title, $content, $mood, $dateValue, $templateKey);
+        $stmt->execute();
+
+        return (int) $connection->insert_id;
+    }
+
+    if (journalLoadDraftForUser($connection, $draftId, $userId) === null) {
+        return null;
+    }
+
+    $stmt = $connection->prepare(
+        'UPDATE journal_drafts '
+        . 'SET title = ?, content = ?, mood_status = ?, entry_date = ?, template_key = ? '
+        . 'WHERE draft_id = ? AND user_id = ?'
+    );
+    $stmt->bind_param(
+        'sssssii',
+        $title,
+        $content,
+        $mood,
+        $dateValue,
+        $templateKey,
+        $draftId,
+        $userId
+    );
+    $stmt->execute();
+
+    if ($stmt->affected_rows === 0
+        && journalLoadDraftForUser($connection, $draftId, $userId) === null
+    ) {
+        return null;
+    }
+
+    return $draftId;
+}
+
+function journalDeleteDraftForUser(mysqli $connection, int $draftId, int $userId): bool
+{
+    $stmt = $connection->prepare(
+        'DELETE FROM journal_drafts WHERE draft_id = ? AND user_id = ?'
+    );
+    $stmt->bind_param('ii', $draftId, $userId);
+    $stmt->execute();
+
+    return $stmt->affected_rows === 1;
+}
+
+function journalPublishDraft(
+    mysqli $connection,
+    int $userId,
+    ?int $draftId,
+    array $data
+): ?int {
+    $connection->begin_transaction();
+
+    try {
+        if ($draftId !== null && journalLoadDraftForUser($connection, $draftId, $userId) === null) {
+            $connection->rollback();
+            return null;
+        }
+
+        $title = (string) $data['title'];
+        $content = (string) $data['content'];
+        $mood = (string) $data['mood_status'];
+        $entryDate = (string) $data['entry_date'];
+        $stmt = $connection->prepare(
+            'INSERT INTO journal_entries '
+            . '(user_id, title, content, mood_status, entry_date) '
+            . 'VALUES (?, ?, ?, ?, ?)'
+        );
+        $stmt->bind_param('issss', $userId, $title, $content, $mood, $entryDate);
+        $stmt->execute();
+        $journalId = (int) $connection->insert_id;
+
+        if ($draftId !== null && !journalDeleteDraftForUser($connection, $draftId, $userId)) {
+            throw new RuntimeException('Owned draft was not removed during publication.');
+        }
+
+        $connection->commit();
+
+        return $journalId;
+    } catch (Throwable $exception) {
+        $connection->rollback();
+        throw $exception;
+    }
 }
 
 function journalMoodSuggestions(mysqli $connection, int $userId): array
