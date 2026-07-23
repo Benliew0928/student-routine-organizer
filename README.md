@@ -20,8 +20,9 @@ Database Import:
 2. Create or select the database named student_routine_organizer.
 3. Import database/student_routine_organizer.sql.
 
-Existing Database Upgrade:
-- If you already imported the older SQL file, import database/habit_tracker_migration.sql before testing the enhanced Habit Tracker.
+Habit Tracker Database:
+- The Twilight Conservatory redesign uses a fresh `habits` + `habit_logs` model.
+- Re-import `database/student_routine_organizer.sql` to use the new tracker. The old single-record habit table is intentionally not migrated.
 
 Sample Student Account:
 Email: student@example.com
@@ -47,5 +48,5 @@ Implemented So Far:
 - Admin system summaries
 - Exercise Tracker CRUD
 - Exercise summaries, filters, sorting, CSV export, and CSRF-protected forms
-- Enhanced Habit Tracker CRUD
-- Habit filters, sorting, quick status updates, progress summaries, best streak, CSV export, and CSRF-protected forms
+- Twilight Conservatory Habit Tracker
+- Reusable quest blueprints, daily quest logs, realm progress, Momentum Trail, archive/restore, and CSRF-protected forms

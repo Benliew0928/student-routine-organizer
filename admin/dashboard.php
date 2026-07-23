@@ -13,6 +13,7 @@ $summary = [
     'journal' => 0,
     'money' => 0,
     'habits' => 0,
+    'habit_completion' => 0,
 ];
 $dashboardError = null;
 
@@ -25,7 +26,9 @@ try {
     $summary['exercise'] = (int) $connection->query('SELECT COUNT(*) AS total FROM exercise_records')->fetch_assoc()['total'];
     $summary['journal'] = (int) $connection->query('SELECT COUNT(*) AS total FROM journal_entries')->fetch_assoc()['total'];
     $summary['money'] = (int) $connection->query('SELECT COUNT(*) AS total FROM money_transactions')->fetch_assoc()['total'];
-    $summary['habits'] = (int) $connection->query('SELECT COUNT(*) AS total FROM habit_records')->fetch_assoc()['total'];
+    $summary['habits'] = (int) $connection->query('SELECT COUNT(*) AS total FROM habits WHERE is_active = 1')->fetch_assoc()['total'];
+    $habitTotals = $connection->query("SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN completion_status = 'completed' THEN 1 ELSE 0 END), 0) AS completed FROM habit_logs WHERE deleted_at IS NULL AND scheduled_date BETWEEN DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY) AND DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 6 DAY)")->fetch_assoc();
+    $summary['habit_completion'] = (int) $habitTotals['total'] ? (int) round(((int) $habitTotals['completed'] / (int) $habitTotals['total']) * 100) : 0;
 } catch (Throwable $exception) {
     $dashboardError = 'Admin summaries are unavailable right now.';
 }
@@ -66,9 +69,9 @@ require __DIR__ . '/../includes/header.php';
         <p>Total finance records in the system</p>
     </article>
     <article class="summary-card">
-        <span class="summary-label">Habit Records</span>
+        <span class="summary-label">Active Habit Blueprints</span>
         <strong><?= number_format($summary['habits']); ?></strong>
-        <p>Total habit records in the system</p>
+        <p><?= number_format($summary['habit_completion']); ?>% of scheduled quests completed this week</p>
     </article>
 </section>
 

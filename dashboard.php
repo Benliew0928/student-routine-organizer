@@ -53,7 +53,7 @@ try {
     $summary['expense_total'] = (float) $money['expense_total'];
     $summary['money_balance'] = $summary['income_total'] - $summary['expense_total'];
 
-    $stmt = $connection->prepare("SELECT COUNT(*) AS record_count, COALESCE(SUM(CASE WHEN completion_status = 'completed' THEN 1 ELSE 0 END), 0) AS completed_count FROM habit_records WHERE user_id = ?");
+    $stmt = $connection->prepare("SELECT COUNT(*) AS record_count, COALESCE(SUM(CASE WHEN l.completion_status = 'completed' THEN 1 ELSE 0 END), 0) AS completed_count FROM habit_logs l INNER JOIN habits h ON h.habit_id = l.habit_id WHERE l.user_id = ? AND h.is_active = 1 AND l.deleted_at IS NULL");
     $stmt->bind_param('i', $userId);
     $stmt->execute();
     $habit = $stmt->get_result()->fetch_assoc();
@@ -95,7 +95,7 @@ require __DIR__ . '/includes/header.php';
         <p>Income RM <?= number_format($summary['income_total'], 2); ?>, expenses RM <?= number_format($summary['expense_total'], 2); ?></p>
     </article>
     <article class="summary-card">
-        <span class="summary-label">Habits Completed</span>
+        <span class="summary-label">Quests Completed</span>
         <strong><?= number_format($summary['habit_completed']); ?> / <?= number_format($summary['habit_count']); ?></strong>
         <p><?= number_format($summary['habit_percentage']); ?>% completion rate</p>
     </article>
@@ -116,7 +116,7 @@ require __DIR__ . '/includes/header.php';
     </a>
     <a class="module-card" href="<?= BASE_URL; ?>/modules/habits/index.php">
         <h2>Habit Tracker</h2>
-        <p>Monitor habit targets, completion status, and habit dates.</p>
+        <p>Build routines through daily quests, realms, and a Momentum Trail.</p>
     </a>
 </section>
 

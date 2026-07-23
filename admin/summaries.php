@@ -28,8 +28,8 @@ try {
         ],
         [
             'module' => 'Habit Tracker',
-            'records' => (int) $connection->query('SELECT COUNT(*) AS total FROM habit_records')->fetch_assoc()['total'],
-            'detail' => (int) $connection->query("SELECT COALESCE(SUM(CASE WHEN completion_status = 'completed' THEN 1 ELSE 0 END), 0) AS total FROM habit_records")->fetch_assoc()['total'] . ' completed habits across ' . (int) $connection->query('SELECT COUNT(DISTINCT category) AS total FROM habit_records')->fetch_assoc()['total'] . ' categories',
+            'records' => (int) $connection->query('SELECT COUNT(*) AS total FROM habits WHERE is_active = 1')->fetch_assoc()['total'],
+            'detail' => (int) $connection->query("SELECT COALESCE(SUM(CASE WHEN completion_status = 'completed' THEN 1 ELSE 0 END), 0) AS total FROM habit_logs WHERE deleted_at IS NULL")->fetch_assoc()['total'] . ' completed quests across ' . (int) $connection->query('SELECT COUNT(DISTINCT realm) AS total FROM habits')->fetch_assoc()['total'] . ' sanctuary realms',
         ],
     ];
 } catch (Throwable $exception) {
