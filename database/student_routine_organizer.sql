@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS habits;
 DROP TABLE IF EXISTS habit_records;
 DROP TABLE IF EXISTS money_transactions;
 DROP TABLE IF EXISTS journal_entries;
+DROP TABLE IF EXISTS exercise_blogs;
 DROP TABLE IF EXISTS exercise_records;
 DROP TABLE IF EXISTS users;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -41,6 +42,20 @@ CREATE TABLE exercise_records (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
     ON DELETE CASCADE,
   INDEX idx_exercise_user_date (user_id, exercise_date)
+);
+
+CREATE TABLE exercise_blogs (
+  blog_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  title VARCHAR(140) NOT NULL,
+  content TEXT NOT NULL,
+  blog_date DATE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_exercise_blog_user
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    ON DELETE CASCADE,
+  INDEX idx_exercise_blog_user_date (user_id, blog_date)
 );
 
 CREATE TABLE journal_entries (
@@ -124,7 +139,7 @@ INSERT INTO users (full_name, email, password_hash, role) VALUES
 ('Sample Student', 'student@example.com', '$2y$10$I1CLDdxlAe1CPh3Si0gBYeszJkDqsiF6OLYeF2cNwBaGzgNXFJpxC', 'student');
 
 INSERT INTO exercise_records (user_id, activity_type, duration_minutes, calories_burned, exercise_date, notes)
-SELECT user_id, 'Jogging', 35, 280, '2026-07-14', 'Morning jog around campus.' FROM users WHERE email = 'student@example.com'
+SELECT user_id, 'Running', 35, 280, '2026-07-14', 'Morning run around campus.' FROM users WHERE email = 'student@example.com'
 UNION ALL SELECT user_id, 'Cycling', 50, 420, '2026-07-16', 'Evening ride after class.' FROM users WHERE email = 'student@example.com'
 UNION ALL SELECT user_id, 'Gym Session', 60, 510, '2026-07-18', 'Strength training and treadmill cooldown.' FROM users WHERE email = 'student@example.com'
 UNION ALL SELECT user_id, 'Swimming', 40, 330, '2026-07-20', 'Easy laps for recovery.' FROM users WHERE email = 'student@example.com';

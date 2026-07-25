@@ -9,6 +9,10 @@ requireLogin();
 
 $userId = (int) $_SESSION['user_id'];
 $exerciseId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
+$focusField = cleanInput((string) ($_GET['focus'] ?? ''));
+if (!in_array($focusField, ['duration_minutes', 'calories_burned'], true)) {
+    $focusField = '';
+}
 
 if (!$exerciseId) {
     setFlash('error', 'Invalid exercise record.');
@@ -35,7 +39,7 @@ try {
         'duration_minutes' => (string) $exercise['duration_minutes'],
         'calories_burned' => (string) $exercise['calories_burned'],
         'exercise_date' => $exercise['exercise_date'],
-        'notes' => $exercise['notes'] ?? '',
+        'custom_activity_type' => array_key_exists($exercise['activity_type'], exerciseActivityOptions()) ? '' : $exercise['activity_type'],
     ]);
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -50,27 +54,31 @@ try {
         if (!$errors) {
             $duration = (int) $data['duration_minutes'];
             $calories = (int) $data['calories_burned'];
-            $stmt = $connection->prepare('UPDATE exercise_records SET activity_type = ?, duration_minutes = ?, calories_burned = ?, exercise_date = ?, notes = ? WHERE exercise_id = ? AND user_id = ?');
+            $stmt = $connection->prepare('UPDATE exercise_records SET activity_type = ?, duration_minutes = ?, calories_burned = ?, exercise_date = ? WHERE exercise_id = ? AND user_id = ?');
             $stmt->bind_param(
-                'siissii',
+                'siisii',
                 $data['activity_type'],
                 $duration,
                 $calories,
                 $data['exercise_date'],
-                $data['notes'],
                 $exerciseId,
                 $userId
             );
             $stmt->execute();
 
             setFlash('success', 'Exercise record updated successfully.');
-            header('Location: ' . BASE_URL . '/modules/exercise/index.php');
+            header('Location: ' . BASE_URL . '/modules/exercise/index.php?view=workouts');
             exit;
         }
     }
 } catch (Throwable $exception) {
     $pageError = 'Exercise editing is unavailable right now. Please check the database setup.';
 }
+
+$selectedActivityType = array_key_exists($data['activity_type'], exerciseActivityOptions()) ? $data['activity_type'] : 'Other';
+$customActivityType = $selectedActivityType === 'Other' && $data['activity_type'] !== 'Other'
+    ? $data['activity_type']
+    : ($data['custom_activity_type'] ?? '');
 
 $pageTitle = 'Edit Exercise';
 require __DIR__ . '/../../includes/header.php';
@@ -98,25 +106,27 @@ require __DIR__ . '/../../includes/header.php';
         <label for="activity_type">Activity Type</label>
         <select id="activity_type" name="activity_type" required>
             <?php foreach (exerciseActivityOptions() as $value => $label): ?>
-                <option value="<?= escapeOutput($value); ?>" <?= $data['activity_type'] === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option>
+                <option value="<?= escapeOutput($value); ?>" <?= $selectedActivityType === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option>
             <?php endforeach; ?>
         </select>
 
+        <div data-custom-activity-wrap <?= $selectedActivityType === 'Other' ? '' : 'hidden'; ?>>
+            <label for="custom_activity_type">Exercise Name</label>
+            <input id="custom_activity_type" name="custom_activity_type" type="text" maxlength="60" value="<?= escapeOutput($customActivityType); ?>" placeholder="Example: Boxing, Pilates, Futsal" <?= $selectedActivityType === 'Other' ? 'required' : ''; ?>>
+        </div>
+
         <label for="duration_minutes">Duration Minutes</label>
-        <input id="duration_minutes" name="duration_minutes" type="number" min="1" max="1440" step="1" value="<?= escapeOutput($data['duration_minutes']); ?>" required>
+        <input id="duration_minutes" name="duration_minutes" type="number" min="1" max="1440" step="1" value="<?= escapeOutput($data['duration_minutes']); ?>" <?= $focusField === 'duration_minutes' ? 'autofocus' : ''; ?> required>
 
         <label for="calories_burned">Calories Burned</label>
-        <input id="calories_burned" name="calories_burned" type="number" min="0" max="20000" step="1" value="<?= escapeOutput($data['calories_burned']); ?>" required>
+        <input id="calories_burned" name="calories_burned" type="number" min="0" max="20000" step="1" value="<?= escapeOutput($data['calories_burned']); ?>" <?= $focusField === 'calories_burned' ? 'autofocus' : ''; ?> required>
 
         <label for="exercise_date">Exercise Date</label>
         <input id="exercise_date" name="exercise_date" type="date" value="<?= escapeOutput($data['exercise_date']); ?>" required>
 
-        <label for="notes">Notes</label>
-        <textarea id="notes" name="notes" maxlength="255"><?= escapeOutput($data['notes']); ?></textarea>
-
         <div class="button-row">
             <button class="button primary" type="submit">Save Changes</button>
-            <a class="button" href="<?= BASE_URL; ?>/modules/exercise/index.php">Cancel</a>
+            <a class="button" href="<?= BASE_URL; ?>/modules/exercise/index.php?view=workouts">Cancel</a>
         </div>
     </form>
 </section>

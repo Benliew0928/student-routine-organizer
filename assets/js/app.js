@@ -85,6 +85,248 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+document.querySelectorAll('[data-pie-tooltip]').forEach((chart) => {
+    if (!(chart instanceof HTMLElement)) {
+        return;
+    }
+
+    let slices = [];
+
+    try {
+        slices = JSON.parse(chart.dataset.pieSlices || '[]');
+    } catch (error) {
+        slices = [];
+    }
+
+    const defaultTooltip = chart.dataset.pieTooltip || '';
+    const setTooltip = (value) => {
+        chart.dataset.pieTooltip = value;
+        chart.setAttribute('title', value);
+    };
+
+    const formatCalories = (value) => Number(value || 0).toLocaleString();
+
+    setTooltip(defaultTooltip);
+
+    chart.addEventListener('pointermove', (event) => {
+        if (!slices.length) {
+            return;
+        }
+
+        const rect = chart.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const angle = (Math.atan2(event.clientY - centerY, event.clientX - centerX) * 180 / Math.PI + 90 + 360) % 360;
+        const percent = angle / 3.6;
+        const activeSlice = slices.find((slice) => percent >= Number(slice.start) && percent < Number(slice.end));
+
+        if (activeSlice) {
+            setTooltip(`${activeSlice.activity}: ${formatCalories(activeSlice.calories)} kcal`);
+        }
+    });
+
+    chart.addEventListener('pointerleave', () => setTooltip(defaultTooltip));
+    chart.addEventListener('blur', () => setTooltip(defaultTooltip));
+});
+
+document.querySelectorAll('[data-exercise-routine]').forEach((card) => {
+    if (!(card instanceof HTMLElement)) {
+        return;
+    }
+
+    const durationDisplay = card.querySelector('[data-exercise-value="duration"]');
+    const caloriesDisplay = card.querySelector('[data-exercise-value="calories"]');
+    const durationInput = card.querySelector('[data-exercise-input="duration"]');
+    const caloriesInput = card.querySelector('[data-exercise-input="calories"]');
+
+    if (!(durationDisplay instanceof HTMLElement)
+        || !(caloriesDisplay instanceof HTMLElement)
+        || !(durationInput instanceof HTMLInputElement)
+        || !(caloriesInput instanceof HTMLInputElement)) {
+        return;
+    }
+
+    const formatNumber = (value) => Number(value || 0).toLocaleString();
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    card.querySelectorAll('[data-exercise-adjust]').forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        button.addEventListener('click', () => {
+            const target = button.dataset.exerciseAdjust;
+            const direction = button.dataset.direction === 'down' ? -1 : 1;
+
+            if (target === 'duration') {
+                const nextValue = clamp(Number(durationInput.value || 0) + direction, 1, 1440);
+                durationInput.value = String(nextValue);
+                durationDisplay.textContent = formatNumber(nextValue);
+            }
+
+            if (target === 'calories') {
+                const nextValue = clamp(Number(caloriesInput.value || 0) + direction, 0, 20000);
+                caloriesInput.value = String(nextValue);
+                caloriesDisplay.textContent = formatNumber(nextValue);
+            }
+        });
+    });
+});
+
+document.querySelectorAll('#activity_type').forEach((select) => {
+    if (!(select instanceof HTMLSelectElement)) {
+        return;
+    }
+
+    const form = select.closest('form');
+    const customWrap = form?.querySelector('[data-custom-activity-wrap]');
+    const customInput = customWrap?.querySelector('input[name="custom_activity_type"]');
+
+    if (!(customWrap instanceof HTMLElement) || !(customInput instanceof HTMLInputElement)) {
+        return;
+    }
+
+    const toggleCustomActivity = () => {
+        const needsCustomName = select.value === 'Other';
+        customWrap.hidden = !needsCustomName;
+        customInput.required = needsCustomName;
+
+        if (!needsCustomName) {
+            customInput.value = '';
+        }
+    };
+
+    select.addEventListener('change', toggleCustomActivity);
+    toggleCustomActivity();
+});
+
+document.querySelectorAll('[data-bmi-calculator]').forEach((form) => {
+    if (!(form instanceof HTMLFormElement)) {
+        return;
+    }
+
+    const heightInput = form.querySelector('input[name="height"]');
+    const weightInput = form.querySelector('input[name="weight"]');
+    const result = document.querySelector('[data-bmi-result]');
+
+    if (!(heightInput instanceof HTMLInputElement)
+        || !(weightInput instanceof HTMLInputElement)
+        || !(result instanceof HTMLElement)) {
+        return;
+    }
+
+    const value = result.querySelector('strong');
+    const note = result.querySelector('p');
+
+    const bmiCategory = (bmi) => {
+        if (bmi < 18.5) {
+            return 'Underweight range';
+        }
+        if (bmi < 25) {
+            return 'Healthy range';
+        }
+        if (bmi < 30) {
+            return 'Overweight range';
+        }
+        return 'Obesity range';
+    };
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        const heightCm = Number(heightInput.value);
+        const weightKg = Number(weightInput.value);
+
+        if (!heightCm || !weightKg || heightCm <= 0 || weightKg <= 0) {
+            if (value) {
+                value.textContent = '--';
+            }
+            if (note) {
+                note.textContent = 'Please enter a valid height and weight.';
+            }
+            return;
+        }
+
+        const heightM = heightCm / 100;
+        const bmi = weightKg / (heightM * heightM);
+
+        if (value) {
+            value.textContent = bmi.toFixed(1);
+        }
+        if (note) {
+            note.textContent = bmiCategory(bmi);
+        }
+    });
+});
+
+document.querySelectorAll('[data-exercise-goals]').forEach((form) => {
+    if (!(form instanceof HTMLFormElement)) {
+        return;
+    }
+
+    const card = form.closest('.exercise-goal-card');
+    const calorieInput = form.querySelector('[data-goal-input="calories"]');
+    const minuteInput = form.querySelector('[data-goal-input="minutes"]');
+
+    if (!(card instanceof HTMLElement)
+        || !(calorieInput instanceof HTMLInputElement)
+        || !(minuteInput instanceof HTMLInputElement)) {
+        return;
+    }
+
+    const storageKey = 'exerciseProgressGoals';
+    const formatNumber = (value) => Number(value || 0).toLocaleString();
+
+    const setMeter = (type, goal) => {
+        const meter = card.querySelector(`[data-goal-meter="${type}"]`);
+        const target = card.querySelector(`[data-goal-target="${type}"]`);
+
+        if (!(meter instanceof HTMLElement) || !(target instanceof HTMLElement)) {
+            return;
+        }
+
+        const current = Number(meter.dataset.current || 0);
+        const safeGoal = Math.max(1, Number(goal || 1));
+        const progress = Math.min(100, Math.round((current / safeGoal) * 100));
+        meter.style.setProperty('--goal-progress', `${progress}%`);
+        target.textContent = type === 'calories'
+            ? `of ${formatNumber(safeGoal)} kcal`
+            : `of ${formatNumber(safeGoal)} active minutes`;
+    };
+
+    const applyGoals = () => {
+        const goals = {
+            calories: Math.max(1, Number(calorieInput.value || 1)),
+            minutes: Math.max(1, Number(minuteInput.value || 1)),
+        };
+
+        calorieInput.value = String(goals.calories);
+        minuteInput.value = String(goals.minutes);
+        setMeter('calories', goals.calories);
+        setMeter('minutes', goals.minutes);
+        window.localStorage.setItem(storageKey, JSON.stringify(goals));
+    };
+
+    try {
+        const savedGoals = JSON.parse(window.localStorage.getItem(storageKey) || '{}');
+        if (savedGoals.calories) {
+            calorieInput.value = String(savedGoals.calories);
+        }
+        if (savedGoals.minutes) {
+            minuteInput.value = String(savedGoals.minutes);
+        }
+    } catch (error) {
+        window.localStorage.removeItem(storageKey);
+    }
+
+    applyGoals();
+    form.addEventListener('input', applyGoals);
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        applyGoals();
+    });
+});
+
 document.querySelectorAll('[data-quest-adjust]').forEach((button) => {
     if (!(button instanceof HTMLButtonElement)) {
         return;
