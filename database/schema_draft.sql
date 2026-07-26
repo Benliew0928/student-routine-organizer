@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS habit_records;
 DROP TABLE IF EXISTS money_transactions;
 DROP TABLE IF EXISTS journal_drafts;
 DROP TABLE IF EXISTS journal_entries;
+DROP TABLE IF EXISTS exercise_blogs;
 DROP TABLE IF EXISTS exercise_records;
 DROP TABLE IF EXISTS users;
 
@@ -40,6 +41,18 @@ CREATE TABLE exercise_records (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
     ON DELETE CASCADE,
   INDEX idx_exercise_user_date (user_id, exercise_date)
+);
+
+CREATE TABLE exercise_blogs (
+  blog_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  title VARCHAR(140) NOT NULL,
+  content TEXT NOT NULL,
+  blog_date DATE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_exercise_blog_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  INDEX idx_exercise_blog_user_date (user_id, blog_date)
 );
 
 CREATE TABLE journal_entries (

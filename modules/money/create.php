@@ -84,7 +84,7 @@ renderMoneyStyles();
         <label for="category">Category</label>
         <select id="category" name="category" required>
             <?php foreach (moneyCategoryOptions() as $value => $label): ?>
-                <option value="<?= escapeOutput($value); ?>" <?= $data['category'] === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option>
+                <option value="<?= escapeOutput($value); ?>" data-types="<?= escapeOutput(implode(' ', moneyCategoryTypes($value))); ?>" <?= $data['category'] === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option>
             <?php endforeach; ?>
         </select>
 
@@ -100,5 +100,7 @@ renderMoneyStyles();
         </div>
     </form>
 </section>
+
+<?php renderMoneyCategorySelectorScript(); ?>
 
 <?php require __DIR__ . '/../../includes/footer.php'; ?>
