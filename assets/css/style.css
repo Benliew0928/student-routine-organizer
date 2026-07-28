@@ -1988,6 +1988,233 @@ textarea {
     border-color: rgba(35, 106, 84, 0.16);
 }
 
+.exercise-achievement-hero {
+    align-items: center;
+    background:
+        radial-gradient(circle at 15% 18%, rgba(255, 212, 99, 0.22), transparent 16rem),
+        radial-gradient(circle at 86% 12%, rgba(47, 143, 107, 0.14), transparent 18rem),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(242, 250, 246, 0.93));
+    border: 1px solid rgba(35, 106, 84, 0.14);
+    border-radius: 16px;
+    box-shadow: 0 18px 38px rgba(32, 49, 38, 0.1);
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(280px, 1fr) auto;
+    margin-bottom: 18px;
+    overflow: hidden;
+    padding: 26px;
+    position: relative;
+}
+
+.exercise-achievement-hero::after {
+    background: repeating-linear-gradient(120deg, rgba(31, 114, 88, 0.08) 0 1px, transparent 1px 18px);
+    content: "";
+    inset: 0 0 0 auto;
+    opacity: 0.55;
+    pointer-events: none;
+    position: absolute;
+    width: min(42%, 420px);
+}
+
+.exercise-achievement-hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+.exercise-achievement-hero h2 {
+    color: var(--primary-dark);
+    font-size: clamp(30px, 4vw, 48px);
+    margin-bottom: 8px;
+}
+
+.exercise-achievement-score {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(31, 114, 88, 0.13);
+    border-radius: 16px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    display: grid;
+    justify-items: center;
+    min-width: 150px;
+    padding: 18px;
+}
+
+.exercise-achievement-score strong {
+    color: #1f7258;
+    font-size: 42px;
+    line-height: 1;
+}
+
+.exercise-achievement-score span {
+    color: #5f6f69;
+    font-size: 13px;
+}
+
+.exercise-achievement-summary {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-bottom: 18px;
+}
+
+.exercise-achievement-summary article {
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(35, 106, 84, 0.12);
+    border-radius: 14px;
+    box-shadow: 0 12px 26px rgba(32, 49, 38, 0.07);
+    display: grid;
+    gap: 8px;
+    padding: 18px;
+}
+
+.exercise-achievement-summary span,
+.exercise-achievement-card span {
+    color: #5f6f69;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.exercise-achievement-summary strong {
+    color: var(--primary-dark);
+    font-size: 26px;
+}
+
+.exercise-achievement-grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.exercise-achievement-card {
+    --achievement-accent: #1f7258;
+    --achievement-soft: rgba(31, 114, 88, 0.14);
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(249, 253, 250, 0.9)),
+        radial-gradient(circle at 100% 0, var(--achievement-soft), transparent 15rem);
+    border: 1px solid rgba(35, 106, 84, 0.13);
+    border-radius: 16px;
+    box-shadow: 0 16px 34px rgba(32, 49, 38, 0.09);
+    display: grid;
+    gap: 16px;
+    min-height: 240px;
+    overflow: hidden;
+    padding: 20px;
+    position: relative;
+    transition:
+        border-color var(--speed) var(--ease),
+        box-shadow var(--speed) var(--ease),
+        transform var(--speed) var(--ease);
+}
+
+.exercise-achievement-card::before {
+    background: var(--achievement-accent);
+    content: "";
+    height: 4px;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.exercise-achievement-card:hover,
+.exercise-achievement-card:focus-within {
+    border-color: color-mix(in srgb, var(--achievement-accent) 38%, transparent);
+    box-shadow: 0 22px 42px rgba(32, 49, 38, 0.14);
+    transform: translateY(-3px);
+}
+
+.exercise-achievement-icon {
+    align-items: center;
+    background: var(--achievement-soft);
+    border: 1px solid color-mix(in srgb, var(--achievement-accent) 22%, transparent);
+    border-radius: 16px;
+    color: var(--achievement-accent);
+    display: inline-flex;
+    font-size: 28px;
+    height: 58px;
+    justify-content: center;
+    width: 58px;
+}
+
+.exercise-achievement-body h2 {
+    color: #143c2f;
+    font-size: 22px;
+    margin: 6px 0 8px;
+}
+
+.exercise-achievement-kicker {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.exercise-achievement-body p {
+    color: #53695f;
+    line-height: 1.65;
+    margin: 0;
+}
+
+.exercise-achievement-progress {
+    display: grid;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.exercise-achievement-progress div {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.exercise-achievement-progress span,
+.exercise-achievement-progress strong {
+    color: #31564a;
+    font-size: 13px;
+}
+
+.exercise-achievement-progress > i {
+    background: var(--achievement-accent);
+    border-radius: 999px;
+    box-shadow: 0 7px 16px var(--achievement-soft);
+    display: block;
+    height: 8px;
+    max-width: 100%;
+}
+
+.exercise-achievement-card.is-locked {
+    opacity: 0.74;
+}
+
+.exercise-achievement-card.is-locked .exercise-achievement-icon {
+    filter: grayscale(0.2);
+}
+
+.exercise-achievement-orange {
+    --achievement-accent: #d9822b;
+    --achievement-soft: rgba(217, 130, 43, 0.16);
+}
+
+.exercise-achievement-blue {
+    --achievement-accent: #4f8fcb;
+    --achievement-soft: rgba(79, 143, 203, 0.16);
+}
+
+.exercise-achievement-purple {
+    --achievement-accent: #8a6ad8;
+    --achievement-soft: rgba(138, 106, 216, 0.16);
+}
+
+.exercise-achievement-teal {
+    --achievement-accent: #24939f;
+    --achievement-soft: rgba(36, 147, 159, 0.15);
+}
+
+.exercise-achievement-empty {
+    margin-bottom: 18px;
+}
+
 .exercise-step-list {
     color: var(--muted);
     font-weight: 700;
@@ -2692,6 +2919,86 @@ textarea {
     }
 }
 
+/* Exercise typography: keep the module closer to the lighter Habits page tone. */
+.exercise-hero h1,
+.exercise-achievement-hero h2,
+.exercise-achievement-card h2,
+.exercise-blog-hero h2,
+.exercise-board-header h2,
+.exercise-chart-heading h2,
+.exercise-interface-card h2,
+.exercise-interface-panel h2,
+.exercise-blog-card h2,
+.exercise-achievement-score strong,
+.exercise-achievement-summary strong,
+.exercise-insight-card strong,
+.exercise-goal-card h2,
+.exercise-goal-row strong,
+.exercise-mini-stats strong,
+.exercise-bmi-result strong {
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.exercise-hero p,
+.exercise-achievement-hero p,
+.exercise-achievement-card p,
+.exercise-blog-hero p,
+.exercise-board-header p,
+.exercise-card p,
+.exercise-blog-card p,
+.exercise-insight-card p,
+.exercise-interface-card p,
+.exercise-interface-panel p,
+.exercise-progress-grid p,
+.exercise-bmi-result p {
+    font-weight: 400;
+}
+
+.exercise-action-bar .exercise-view-button,
+.exercise-board-header .button,
+.exercise-card .button,
+.exercise-achievement-card .button,
+.exercise-blog-card .button,
+.exercise-blog-hero .button,
+.exercise-blog-compose,
+.exercise-bmi-form .button,
+.exercise-goal-form .button,
+.exercise-interface-card .button,
+.exercise-interface-panel .button,
+.exercise-activity,
+.status-pill,
+.exercise-stat-row span,
+.exercise-stat-row a,
+.exercise-stat-adjust,
+.exercise-chart-heading > span,
+.exercise-pie-legend span,
+.exercise-bar-value,
+.exercise-bar-label,
+.exercise-bmi-form label,
+.exercise-goal-form label,
+.exercise-goal-row span,
+.exercise-achievement-score span,
+.exercise-achievement-summary span,
+.exercise-achievement-card span,
+.exercise-bmi-result span {
+    font-weight: 600;
+}
+
+.summary-label,
+.exercise-y-axis,
+.exercise-y-axis-title,
+.exercise-x-axis-title {
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.exercise-card-delete,
+.exercise-blog-delete,
+.exercise-adjust-controls button {
+    font-weight: 500;
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -2787,10 +3094,17 @@ textarea {
 
     .exercise-action-bar,
     .exercise-chart-grid,
+    .exercise-achievement-hero,
+    .exercise-achievement-summary,
     .exercise-blog-hero,
     .exercise-pie-layout,
     .exercise-progress-grid {
         grid-template-columns: 1fr;
+    }
+
+    .exercise-achievement-score {
+        justify-items: start;
+        min-width: 0;
     }
 
     .exercise-blog-card {
