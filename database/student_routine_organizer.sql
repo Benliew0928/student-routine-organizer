@@ -159,7 +159,10 @@ INSERT INTO exercise_records (user_id, activity_type, duration_minutes, calories
 SELECT user_id, 'Running', 35, 280, '2026-07-14', 'Morning run around campus.' FROM users WHERE email = 'student@example.com'
 UNION ALL SELECT user_id, 'Cycling', 50, 420, '2026-07-16', 'Evening ride after class.' FROM users WHERE email = 'student@example.com'
 UNION ALL SELECT user_id, 'Gym Session', 60, 510, '2026-07-18', 'Strength training and treadmill cooldown.' FROM users WHERE email = 'student@example.com'
-UNION ALL SELECT user_id, 'Swimming', 40, 330, '2026-07-20', 'Easy laps for recovery.' FROM users WHERE email = 'student@example.com';
+UNION ALL SELECT user_id, 'Swimming', 40, 330, '2026-07-20', 'Easy laps for recovery.' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Walking', 30, 160, '2026-06-08', 'Walked around the campus after class.' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Yoga', 25, 120, '2026-06-15', 'Gentle stretching and breathing practice.' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Running', 30, 240, '2026-06-23', 'Short run before breakfast.' FROM users WHERE email = 'student@example.com';
 
 INSERT INTO habits (user_id, habit_name, realm, target_frequency, scheduled_days, preferred_time, duration_minutes, motivation, priority)
 SELECT user_id, 'Morning Study Review', 'focus', 'weekdays', 'mon,tue,wed,thu,fri', '08:00:00', 20, 'Arrive at class feeling prepared.', 'high' FROM users WHERE email = 'student@example.com'
@@ -176,4 +179,40 @@ UNION ALL SELECT h.habit_id, h.user_id, '2026-07-21', 'completed', '2026-07-21 0
 UNION ALL SELECT h.habit_id, h.user_id, '2026-07-22', 'scheduled', NULL, NULL FROM habits h WHERE h.habit_name = 'Fill Water Bottle'
 UNION ALL SELECT h.habit_id, h.user_id, '2026-07-20', 'completed', '2026-07-20 21:40:00', 'A calm reset before the new week.' FROM habits h WHERE h.habit_name = 'Write One Reflection'
 UNION ALL SELECT h.habit_id, h.user_id, '2026-07-21', 'completed', '2026-07-21 20:40:00', 'Mapped tomorrow before sleeping.' FROM habits h WHERE h.habit_name = 'Plan Tomorrow'
-UNION ALL SELECT h.habit_id, h.user_id, '2026-07-22', 'scheduled', NULL, NULL FROM habits h WHERE h.habit_name = 'Plan Tomorrow';
+UNION ALL SELECT h.habit_id, h.user_id, '2026-07-22', 'scheduled', NULL, NULL FROM habits h WHERE h.habit_name = 'Plan Tomorrow'
+UNION ALL SELECT h.habit_id, h.user_id, '2026-06-10', 'completed', '2026-06-10 08:15:00', 'Reviewed lecture notes before class.' FROM habits h WHERE h.habit_name = 'Morning Study Review'
+UNION ALL SELECT h.habit_id, h.user_id, '2026-06-17', 'completed', '2026-06-17 09:03:00', 'Prepared water before leaving home.' FROM habits h WHERE h.habit_name = 'Fill Water Bottle'
+UNION ALL SELECT h.habit_id, h.user_id, '2026-06-24', 'completed', '2026-06-24 20:45:00', 'Listed tomorrow priorities.' FROM habits h WHERE h.habit_name = 'Plan Tomorrow';
+
+INSERT INTO exercise_blogs (user_id, title, content, blog_date)
+SELECT user_id, 'A stronger week of movement', 'I kept the routine realistic this week: short runs, a gym session, and recovery swimming. The variety helped me stay consistent without feeling overwhelmed.', '2026-07-20' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'What I learned from cycling after class', 'An evening ride is a useful reset after a long day of lectures. I return home with more energy and a clearer mind for revision.', '2026-07-16' FROM users WHERE email = 'student@example.com';
+
+INSERT INTO journal_entries (user_id, title, content, mood_status, entry_date)
+SELECT user_id, 'A focused start', 'I finished my morning review before class and felt more prepared during the lecture. I want to repeat this small routine tomorrow.', 'Motivated', '2026-07-20' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Balancing assignments', 'There is still a lot to complete, but breaking the work into smaller tasks made the day feel manageable.', 'Calm', '2026-07-21' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'A good reset', 'The evening cycle helped me step away from screens and return to my notes with a fresh perspective.', 'Grateful', '2026-07-22' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'June goals', 'I want to make steady progress with revision and leave time for rest each evening.', 'Hopeful', '2026-06-05' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Small wins', 'I completed my exercise plan and reviewed the difficult topic from class.', 'Proud', '2026-06-18' FROM users WHERE email = 'student@example.com';
+
+INSERT INTO journal_drafts (user_id, title, content, mood_status, entry_date, template_key)
+SELECT user_id, 'Weekend reflection', 'This draft is ready to be finished after I review the week.', 'Thoughtful', '2026-07-26', 'reflection' FROM users WHERE email = 'student@example.com';
+
+INSERT INTO money_transactions (user_id, amount, category, description, transaction_type, transaction_date)
+SELECT user_id, 4000.00, 'Salary', 'Monthly part-time salary.', 'income', '2026-07-01' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 300.00, 'Allowance', 'Monthly study allowance.', 'income', '2026-07-02' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 150.00, 'Freelance', 'Poster design project.', 'income', '2026-07-10' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 38.20, 'Shopping', 'Stationery and study supplies.', 'expense', '2026-07-03' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 15.00, 'Food', 'Lunch near campus.', 'expense', '2026-07-05' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 5.00, 'Transport', 'Campus bus fare.', 'expense', '2026-07-08' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 68.00, 'Bills', 'Mobile data plan.', 'expense', '2026-07-12' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 24.50, 'Entertainment', 'Movie night with friends.', 'expense', '2026-07-18' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 12.00, 'Food', 'Coffee and breakfast.', 'expense', '2026-07-21' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 4000.00, 'Salary', 'Monthly part-time salary.', 'income', '2026-06-01' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 300.00, 'Allowance', 'Monthly study allowance.', 'income', '2026-06-02' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 75.00, 'Freelance', 'Tutoring session payment.', 'income', '2026-06-16' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 26.50, 'Food', 'Lunch and snacks.', 'expense', '2026-06-04' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 18.00, 'Transport', 'Train and bus fares.', 'expense', '2026-06-09' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 45.00, 'Shopping', 'Reference book.', 'expense', '2026-06-13' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 68.00, 'Bills', 'Mobile data plan.', 'expense', '2026-06-20' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 30.00, 'Entertainment', 'Campus event ticket.', 'expense', '2026-06-27' FROM users WHERE email = 'student@example.com';
