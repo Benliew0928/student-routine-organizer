@@ -140,7 +140,7 @@ try {
 $selectedTemplateKey = array_key_exists($data['template_key'], $templates) ? $data['template_key'] : 'blank';
 $pageTitle = $draftId ? 'Continue Journal Draft' : 'Noted.edu - Interactive Journal';
 $pageScripts = [
-    BASE_URL . '/assets/js/notability_journal.js?v=20260730-v11',
+    BASE_URL . '/assets/js/journal_editor.js?v=20260730-v11',
     BASE_URL . '/assets/js/journal.js'
 ];
 require __DIR__ . '/../../includes/header.php';

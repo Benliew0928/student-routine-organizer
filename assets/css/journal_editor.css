@@ -1,0 +1,1101 @@
+/* Interactive Journal Editor Stylesheet */
+:root {
+    --nj-bg: #f4f7f2;
+    --nj-surface: rgba(255, 255, 255, 0.94);
+    --nj-surface-soft: #f8faf6;
+    --nj-primary: #236a54;
+    --nj-primary-dark: #174d3d;
+    --nj-primary-light: #e2f1ea;
+    --nj-text: #17231b;
+    --nj-muted: #647064;
+    --nj-border: #dbe4d7;
+    --nj-rose: #b84a62;
+    --nj-rose-light: #fdebf0;
+    --nj-amber: #d9822b;
+    --nj-amber-light: #fff0de;
+    --nj-blue: #3569b7;
+    --nj-blue-light: #e8effb;
+    --nj-purple: #7b4eb2;
+    --nj-purple-light: #f1ebf9;
+    --nj-shadow-sm: 0 4px 14px rgba(23, 35, 27, 0.06);
+    --nj-shadow-md: 0 10px 30px rgba(23, 35, 27, 0.1);
+    --nj-shadow-lg: 0 20px 45px rgba(23, 35, 27, 0.15);
+    --nj-radius: 12px;
+    --nj-radius-sm: 8px;
+    --nj-font-ui: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --nj-font-canvas: 'Lora', 'Playfair Display', Georgia, serif;
+}
+
+/* Base resets & layout */
+.noted-app-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    font-family: var(--nj-font-ui);
+    color: var(--nj-text);
+}
+
+/* Header Bar */
+.noted-header {
+    background: var(--nj-surface);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--nj-border);
+    border-radius: var(--nj-radius);
+    padding: 14px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-shadow: var(--nj-shadow-sm);
+    flex-wrap: wrap;
+}
+
+.noted-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--nj-primary-dark);
+}
+
+.noted-brand-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--nj-primary), #43967b);
+    color: #fff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 4px 10px rgba(35, 106, 84, 0.25);
+}
+
+.noted-brand-text h2 {
+    font-size: 18px;
+    font-weight: 800;
+    margin: 0;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.noted-brand-text span {
+    font-size: 11px;
+    color: var(--nj-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Search Bar */
+.noted-search-box {
+    position: relative;
+    flex: 1;
+    max-width: 320px;
+    min-width: 180px;
+}
+
+.noted-search-box i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--nj-muted);
+}
+
+.noted-search-box input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    border: 1px solid var(--nj-border);
+    border-radius: 20px;
+    background: var(--nj-surface-soft);
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.noted-search-box input:focus {
+    background: #fff;
+    border-color: var(--nj-primary);
+    box-shadow: 0 0 0 3px rgba(35, 106, 84, 0.15);
+    outline: none;
+}
+
+/* View Switcher */
+.noted-view-switcher {
+    display: flex;
+    background: var(--nj-surface-soft);
+    border: 1px solid var(--nj-border);
+    border-radius: 20px;
+    padding: 3px;
+}
+
+.noted-view-btn {
+    border: none;
+    background: transparent;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--nj-muted);
+    border-radius: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.noted-view-btn.active {
+    background: #fff;
+    color: var(--nj-primary-dark);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Quick Action Toolbar */
+.noted-tools-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.noted-tool-btn {
+    background: var(--nj-surface-soft);
+    border: 1px solid var(--nj-border);
+    color: var(--nj-text);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.18s ease;
+    position: relative;
+}
+
+.noted-tool-btn:hover {
+    background: var(--nj-primary-light);
+    color: var(--nj-primary-dark);
+    border-color: var(--nj-primary);
+    transform: translateY(-1px);
+}
+
+.noted-tool-btn.active {
+    background: var(--nj-primary);
+    color: #fff;
+    border-color: var(--nj-primary-dark);
+}
+
+.noted-btn-ai {
+    background: linear-gradient(135deg, #236a54, #3569b7);
+    color: #fff;
+    border: none;
+}
+
+.noted-btn-ai:hover {
+    box-shadow: 0 4px 12px rgba(53, 105, 183, 0.3);
+    color: #fff;
+}
+
+/* Main Layout Grid */
+.noted-main-grid {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .noted-main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Sidebar */
+.noted-sidebar {
+    background: var(--nj-surface);
+    border: 1px solid var(--nj-border);
+    border-radius: var(--nj-radius);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: var(--nj-shadow-sm);
+}
+
+/* Student Profile Banner */
+.student-profile-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--nj-border);
+}
+
+.student-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--nj-rose), var(--nj-amber));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    box-shadow: 0 3px 8px rgba(184, 74, 98, 0.25);
+}
+
+.student-info h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.student-info p {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: var(--nj-muted);
+}
+
+.streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--nj-amber-light);
+    color: var(--nj-amber);
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-top: 4px;
+}
+
+/* Quick Filters */
+.sidebar-section-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--nj-muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.quick-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.quick-filter-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: var(--nj-radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--nj-text);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.quick-filter-item:hover, .quick-filter-item.active {
+    background: var(--nj-primary-light);
+    color: var(--nj-primary-dark);
+}
+
+.badge-count {
+    background: var(--nj-border);
+    color: var(--nj-text);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+/* Subject Manager */
+.subject-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.subject-tag-pill {
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform 0.15s ease;
+}
+
+.subject-tag-pill:hover {
+    transform: translateY(-1px);
+}
+
+.subject-math { background: #e3f2fd; color: #1565c0; border-color: #bbdefb; }
+.subject-biology { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
+.subject-history { background: #fff3e0; color: #e65100; border-color: #ffe0b2; }
+.subject-literature { background: #f3e5f5; color: #7b1fa2; border-color: #e1bee7; }
+.subject-cs { background: #e0f7fa; color: #00838f; border-color: #b2ebf2; }
+.subject-general { background: #f5f5f5; color: #424242; border-color: #e0e0e0; }
+
+.add-subject-btn {
+    background: transparent;
+    border: 1px dashed var(--nj-border);
+    color: var(--nj-muted);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 14px;
+    cursor: pointer;
+}
+
+.add-subject-btn:hover {
+    border-color: var(--nj-primary);
+    color: var(--nj-primary);
+}
+
+/* Recent Notes List */
+.sidebar-notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.sidebar-note-card {
+    padding: 8px 10px;
+    border-radius: var(--nj-radius-sm);
+    border: 1px solid var(--nj-border);
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sidebar-note-card:hover {
+    border-color: var(--nj-primary);
+    box-shadow: var(--nj-shadow-sm);
+}
+
+.sidebar-note-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--nj-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-note-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--nj-muted);
+}
+
+/* Storage Widget */
+.storage-widget {
+    background: var(--nj-surface-soft);
+    border-radius: var(--nj-radius-sm);
+    padding: 10px;
+    border: 1px solid var(--nj-border);
+    margin-top: auto;
+}
+
+.storage-bar-outer {
+    height: 6px;
+    background: var(--nj-border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 6px 0;
+}
+
+.storage-bar-inner {
+    height: 100%;
+    width: 32%;
+    background: linear-gradient(90deg, var(--nj-primary), var(--nj-blue));
+    border-radius: 3px;
+}
+
+.storage-text {
+    font-size: 10px;
+    color: var(--nj-muted);
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Interactive Canvas Paper Wrapper */
+.noted-canvas-wrapper {
+    position: relative;
+    background: #fff;
+    border: 1px solid var(--nj-border);
+    border-radius: var(--nj-radius);
+    box-shadow: var(--nj-shadow-md);
+    min-height: 750px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Canvas Metadata Header */
+.canvas-meta-header {
+    padding: 16px 24px;
+    background: var(--nj-surface-soft);
+    border-bottom: 1px solid var(--nj-border);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.canvas-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.canvas-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.meta-selector {
+    background: #ffffff;
+    border: 1px solid var(--nj-border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--nj-text);
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23647064' viewBox='0 0 16 16'><path d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px !important;
+}
+
+.meta-selector:hover {
+    border-color: var(--nj-primary);
+    background-color: #f7faf6;
+    box-shadow: 0 2px 6px rgba(35, 106, 84, 0.1);
+}
+
+.meta-selector:focus {
+    border-color: var(--nj-primary);
+    box-shadow: 0 0 0 3px rgba(35, 106, 84, 0.15);
+}
+
+.mood-selector {
+    background-color: #fff4f6;
+    border-color: #f8bbd0;
+    color: #b84a62;
+    font-weight: 700;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23b84a62' viewBox='0 0 16 16'><path d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/></svg>");
+}
+
+.mood-selector:hover {
+    background-color: #fce4ec;
+    border-color: #f06292;
+}
+
+.note-title-input {
+    font-family: var(--nj-font-ui);
+    font-size: 24px;
+    font-weight: 800;
+    border: none;
+    background: transparent;
+    color: var(--nj-text);
+    width: 100%;
+    outline: none;
+    letter-spacing: -0.02em;
+}
+
+.note-title-input::placeholder {
+    color: var(--nj-border);
+}
+
+/* Rich Text & Stamp Formatting Bar */
+.noted-formatting-bar {
+    padding: 8px 24px;
+    background: #fff;
+    border-bottom: 1px solid var(--nj-border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.fmt-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--nj-text);
+}
+
+.fmt-btn:hover {
+    background: var(--nj-surface-soft);
+    border-color: var(--nj-border);
+}
+
+.fmt-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--nj-border);
+    margin: 0 4px;
+}
+
+.stamp-btn {
+    font-size: 16px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: transform 0.15s ease;
+}
+
+.stamp-btn:hover {
+    transform: scale(1.25);
+}
+
+/* Journal Canvas Paper Area */
+.noted-paper-container {
+    position: relative;
+    flex: 1;
+    min-height: 600px;
+    padding: 30px 40px;
+    overflow: auto;
+    font-family: var(--nj-font-canvas);
+    font-size: 16px;
+    line-height: 1.8;
+}
+
+/* Paper Styles */
+.paper-blank {
+    background-color: #fafbfc;
+}
+
+.paper-lined {
+    background-color: #fff;
+    background-image: linear-gradient(#e1e8ed 1px, transparent 1px);
+    background-size: 100% 32px;
+    background-position: 0 10px;
+    border-left: 2px solid #f2aa9a;
+}
+
+.paper-grid {
+    background-color: #fff;
+    background-image: 
+        linear-gradient(rgba(219, 228, 215, 0.6) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(219, 228, 215, 0.6) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+.paper-dot {
+    background-color: #fafbfc;
+    background-image: radial-gradient(rgba(100, 112, 100, 0.3) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+}
+
+.paper-cornell {
+    background-color: #fff;
+    background-image: linear-gradient(#e1e8ed 1px, transparent 1px);
+    background-size: 100% 32px;
+    position: relative;
+}
+
+.paper-cornell::before {
+    content: "CUE / RECALL COLUMN";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 120px;
+    width: 220px;
+    border-right: 2px dashed var(--nj-primary);
+    padding: 10px;
+    font-family: var(--nj-font-ui);
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--nj-muted);
+}
+
+.paper-cornell::after {
+    content: "SUMMARY SECTION";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 110px;
+    border-top: 2px dashed var(--nj-primary);
+    padding: 10px;
+    font-family: var(--nj-font-ui);
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--nj-muted);
+}
+
+.paper-parchment {
+    background: #f7f1e3;
+    background-image: radial-gradient(#e5d8be 1px, transparent 1px);
+    background-size: 20px 20px;
+    color: #403223;
+}
+
+/* Rich Text Editor Contentarea */
+.paper-editor-content {
+    width: 100%;
+    min-height: 520px;
+    outline: none;
+    border: none;
+    background: transparent;
+    color: var(--nj-text);
+    z-index: 2;
+    position: relative;
+}
+
+.paper-editor-content p {
+    margin: 0 0 12px;
+}
+
+/* Freehand HTML5 Canvas Drawing Overlay */
+.drawing-layer-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.drawing-layer-canvas.active {
+    pointer-events: auto;
+    cursor: crosshair;
+}
+
+/* Floating Drawing Toolbar */
+.drawing-toolbar {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--nj-surface);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--nj-border);
+    box-shadow: var(--nj-shadow-lg);
+    border-radius: 30px;
+    padding: 8px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 50;
+}
+
+.tool-choice-btn {
+    border: none;
+    background: transparent;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--nj-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-choice-btn.selected {
+    background: var(--nj-primary-light);
+    color: var(--nj-primary-dark);
+    font-weight: 800;
+}
+
+.color-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--nj-border);
+}
+
+.color-dot.active {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 2px var(--nj-primary);
+}
+
+/* Floating Sticky Notes */
+.sticky-note-item {
+    position: absolute;
+    width: 200px;
+    min-height: 160px;
+    border-radius: 12px;
+    box-shadow: var(--nj-shadow-md);
+    padding: 12px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    resize: both;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.sticky-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: move;
+    padding-bottom: 6px;
+    border-bottom: 1px rgba(0, 0, 0, 0.1) solid;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    color: rgba(0, 0, 0, 0.6);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.sticky-content {
+    flex: 1;
+    border: none;
+    background: transparent;
+    resize: none;
+    outline: none;
+    font-family: var(--nj-font-ui);
+    font-size: 13px;
+    color: #222;
+    user-select: text;
+    -webkit-user-select: text;
+    pointer-events: auto;
+    cursor: text;
+}
+
+.sticky-yellow { background: #fff9c4; border: 1px solid #fff59d; }
+.sticky-pink { background: #f8bbd0; border: 1px solid #f48fb1; }
+.sticky-blue { background: #bbdefb; border: 1px solid #90caf9; }
+.sticky-green { background: #c8e6c9; border: 1px solid #a5d6a7; }
+.sticky-purple { background: #e1bee7; border: 1px solid #ce93d8; }
+
+/* Draggable & Rotatable Media Items */
+.interactive-media-item {
+    position: absolute;
+    display: inline-block;
+    cursor: move;
+    z-index: 15;
+    user-select: none;
+    border: 1px dashed transparent;
+}
+
+.interactive-media-item.selected {
+    border-color: var(--nj-primary);
+}
+
+.rotate-handle {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 18px;
+    background: var(--nj-primary);
+    color: #fff;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    cursor: grab;
+}
+
+.interactive-media-item.selected .rotate-handle {
+    display: flex;
+}
+
+.media-quick-bar {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--nj-surface);
+    border: 1px solid var(--nj-border);
+    border-radius: 8px;
+    padding: 2px 6px;
+    display: none;
+    gap: 4px;
+    box-shadow: var(--nj-shadow-sm);
+}
+
+.interactive-media-item.selected .media-quick-bar {
+    display: flex;
+}
+
+.quick-bar-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    color: var(--nj-text);
+}
+
+
+
+/* Calendar & Study Timeline View */
+.calendar-timeline-view {
+    background: var(--nj-surface);
+    border: 1px solid var(--nj-border);
+    border-radius: var(--nj-radius);
+    padding: 24px;
+    box-shadow: var(--nj-shadow-sm);
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.calendar-day-head {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--nj-muted);
+    padding: 8px;
+    text-transform: uppercase;
+}
+
+.calendar-day-cell {
+    background: #fff;
+    border: 1px solid var(--nj-border);
+    border-radius: var(--nj-radius-sm);
+    min-height: 100px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all 0.15s ease;
+}
+
+.calendar-day-cell:hover {
+    border-color: var(--nj-primary);
+    box-shadow: var(--nj-shadow-sm);
+}
+
+.calendar-date-num {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--nj-text);
+}
+
+.calendar-today {
+    background: var(--nj-primary-light);
+    border-color: var(--nj-primary);
+}
+
+.calendar-note-pill {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-decoration: none;
+    display: block;
+}
+
+/* Modals System */
+.noted-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(16, 24, 44, 0.5);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.noted-modal.open {
+    display: flex;
+}
+
+.noted-modal-card {
+    background: #fff;
+    border-radius: var(--nj-radius);
+    box-shadow: var(--nj-shadow-lg);
+    width: 90%;
+    max-width: 560px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--nj-border);
+}
+
+.noted-modal-header {
+    padding: 16px 20px;
+    background: var(--nj-surface-soft);
+    border-bottom: 1px solid var(--nj-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.noted-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.noted-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.noted-modal-footer {
+    padding: 12px 20px;
+    background: var(--nj-surface-soft);
+    border-top: 1px solid var(--nj-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Gemini AI Coach Tabs */
+.ai-tabs {
+    display: flex;
+    gap: 6px;
+    border-bottom: 1px solid var(--nj-border);
+    margin-bottom: 16px;
+}
+
+.ai-tab-btn {
+    border: none;
+    background: transparent;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--nj-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+.ai-tab-btn.active {
+    color: var(--nj-primary);
+    border-bottom-color: var(--nj-primary);
+}
+
+.ai-result-box {
+    background: var(--nj-surface-soft);
+    border: 1px solid var(--nj-border);
+    border-radius: var(--nj-radius-sm);
+    padding: 12px;
+    font-size: 13px;
+    min-height: 120px;
+    max-height: 240px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+/* ---------------------------------------------------- */
+/* ULTIMATE GLOBAL UI FIX: LOCK ALL TEXT CARETS/CURSORS */
+/* ---------------------------------------------------- */
+
+/* 1. Universal non-selectable rule for all UI elements in the Journal module */
+.noted-app-container,
+.noted-app-container *:not(input):not(textarea):not(select):not([contenteditable="true"]):not(.paper-editor-content),
+.journal-delete-panel,
+.journal-delete-panel * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+}
+
+/* 2. Preserve text selection ONLY for actual typing inputs, editable canvas, and body note content */
+.noted-app-container input,
+.noted-app-container textarea:not([disabled]),
+.noted-app-container select,
+.noted-app-container [contenteditable="true"],
+.noted-app-container .paper-editor-content,
+.journal-delete-panel input,
+.journal-delete-panel textarea {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+}
+
+/* 3. Explicitly disable pointer events on search box icons and decorative icons so clicking them cannot focus or show carets */
+.noted-search-box i,
+.noted-brand-icon,
+.noted-tool-btn i,
+.quick-filter-item i,
+.subject-tag-pill i,
+.journal-mood-pill i,
+.sidebar-section-title i,
+.journal-summary-row i,
+.journal-draft-badge i,
+.streak-badge i,
+.journal-card-topline i {
+    pointer-events: none !important;
+}
+
+/* 4. Ensure non-interactive read-only labels have default arrow cursor */
+.subject-tag-pill, .journal-mood-pill, .canvas-header-top time, .streak-badge,
+.summary-label, .journal-board-heading, .journal-board-heading h2, .journal-card-topline,
+.journal-card time, .journal-draft-card time, .eyebrow, .sidebar-note-meta,
+.student-info p, .student-info h4, .journal-summary-row span, .storage-text,
+.journal-hero h1, .journal-hero p, .empty-state h2, .empty-state p,
+.calendar-header h2, .calendar-header p, .calendar-day-head, .calendar-date-num,
+[data-word-count], [data-character-count], span[aria-live="polite"],
+.journal-template-card strong, .journal-template-card span {
+    cursor: default !important;
+}
+
+/* 5. Ensure buttons, links, and template cards maintain pointer hand cursor */
+.noted-brand, .noted-view-btn, .noted-tool-btn, .quick-filter-item,
+.sidebar-note-card, .tool-choice-btn, .color-dot, .stamp-btn, 
+.button, .rotate-handle, .media-quick-bar button,
+.journal-card h2 a, .journal-draft-card h3,
+.calendar-note-pill, .calendar-day-cell, .journal-template-card,
+.add-subject-btn {
+    cursor: pointer !important;
+}

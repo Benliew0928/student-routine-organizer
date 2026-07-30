@@ -69,7 +69,7 @@ try {
 
 $pageTitle = 'Edit Journal Entry - Noted.edu';
 $pageScripts = [
-    BASE_URL . '/assets/js/notability_journal.js?v=20260730-v11',
+    BASE_URL . '/assets/js/journal_editor.js?v=20260730-v11',
     BASE_URL . '/assets/js/journal.js'
 ];
 require __DIR__ . '/../../includes/header.php';

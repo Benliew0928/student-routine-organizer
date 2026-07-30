@@ -34,7 +34,7 @@ try {
 
 $pageTitle = $entry ? $entry['title'] . ' | Noted.edu' : 'Journal Entry';
 $pageScripts = [
-    BASE_URL . '/assets/js/notability_journal.js?v=20260730-v11'
+    BASE_URL . '/assets/js/journal_editor.js?v=20260730-v11'
 ];
 require __DIR__ . '/../../includes/header.php';
 ?>
