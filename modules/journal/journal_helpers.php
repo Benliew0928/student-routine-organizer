@@ -48,6 +48,12 @@ function journalDefaultFormData(): array
         'mood_status' => '',
         'entry_date' => date('Y-m-d'),
         'template_key' => 'blank',
+        'subject' => 'General',
+        'weather' => '☀️ Sunny',
+        'tags' => '',
+        'paper_style' => 'lined',
+        'starred' => 0,
+        'canvas_json' => '',
     ];
 }
 
@@ -59,6 +65,12 @@ function journalDataFromRequest(array $source): array
         'mood_status' => cleanInput((string) ($source['mood_status'] ?? '')),
         'entry_date' => cleanInput((string) ($source['entry_date'] ?? '')),
         'template_key' => cleanInput((string) ($source['template_key'] ?? 'blank')),
+        'subject' => cleanInput((string) ($source['subject'] ?? 'General')),
+        'weather' => cleanInput((string) ($source['weather'] ?? '☀️ Sunny')),
+        'tags' => cleanInput((string) ($source['tags'] ?? '')),
+        'paper_style' => cleanInput((string) ($source['paper_style'] ?? 'lined')),
+        'starred' => isset($source['starred']) && (int) $source['starred'] === 1 ? 1 : 0,
+        'canvas_json' => trim((string) ($source['canvas_json'] ?? '')),
     ];
 }
 
@@ -86,8 +98,8 @@ function journalValidateData(array $data): array
 
     if ($content === '') {
         $errors[] = 'Please write some journal content.';
-    } elseif (mb_strlen($content) > 10000) {
-        $errors[] = 'Journal content must be 10,000 characters or fewer.';
+    } elseif (mb_strlen($content) > 500000) {
+        $errors[] = 'Journal content exceeds max allowed size.';
     }
 
     if ($mood === '') {
@@ -120,10 +132,6 @@ function journalValidateDraftData(array $data): array
         $errors[] = 'Draft title must be 120 characters or fewer.';
     }
 
-    if (mb_strlen($content) > 10000) {
-        $errors[] = 'Draft content must be 10,000 characters or fewer.';
-    }
-
     if (mb_strlen($mood) > 50) {
         $errors[] = 'Draft mood must be 50 characters or fewer.';
     }
@@ -144,6 +152,7 @@ function journalDraftHasMeaningfulContent(array $data): bool
     return trim((string) ($data['title'] ?? '')) !== ''
         || trim((string) ($data['content'] ?? '')) !== ''
         || trim((string) ($data['mood_status'] ?? '')) !== ''
+        || trim((string) ($data['canvas_json'] ?? '')) !== ''
         || (string) ($data['template_key'] ?? 'blank') !== 'blank';
 }
 
@@ -235,8 +244,7 @@ function journalBindParams(mysqli_stmt $stmt, string $types, array &$params): vo
 function journalLoadForUser(mysqli $connection, int $journalId, int $userId): ?array
 {
     $stmt = $connection->prepare(
-        'SELECT journal_id, user_id, title, content, mood_status, entry_date, created_at, updated_at '
-        . 'FROM journal_entries WHERE journal_id = ? AND user_id = ? LIMIT 1'
+        'SELECT * FROM journal_entries WHERE journal_id = ? AND user_id = ? LIMIT 1'
     );
     $stmt->bind_param('ii', $journalId, $userId);
     $stmt->execute();
@@ -248,8 +256,7 @@ function journalLoadForUser(mysqli $connection, int $journalId, int $userId): ?a
 function journalLoadDraftForUser(mysqli $connection, int $draftId, int $userId): ?array
 {
     $stmt = $connection->prepare(
-        'SELECT draft_id, user_id, title, content, mood_status, entry_date, template_key, created_at, updated_at '
-        . 'FROM journal_drafts WHERE draft_id = ? AND user_id = ? LIMIT 1'
+        'SELECT * FROM journal_drafts WHERE draft_id = ? AND user_id = ? LIMIT 1'
     );
     $stmt->bind_param('ii', $draftId, $userId);
     $stmt->execute();
@@ -261,8 +268,7 @@ function journalLoadDraftForUser(mysqli $connection, int $draftId, int $userId):
 function journalListDraftsForUser(mysqli $connection, int $userId): array
 {
     $stmt = $connection->prepare(
-        'SELECT draft_id, user_id, title, content, mood_status, entry_date, template_key, created_at, updated_at '
-        . 'FROM journal_drafts WHERE user_id = ? ORDER BY updated_at DESC, draft_id DESC'
+        'SELECT * FROM journal_drafts WHERE user_id = ? ORDER BY updated_at DESC, draft_id DESC'
     );
     $stmt->bind_param('i', $userId);
     $stmt->execute();
@@ -282,14 +288,20 @@ function journalSaveDraft(
     $entryDate = (string) ($data['entry_date'] ?? '');
     $dateValue = $entryDate === '' ? null : $entryDate;
     $templateKey = (string) ($data['template_key'] ?? 'blank');
+    $subject = (string) ($data['subject'] ?? 'General');
+    $weather = (string) ($data['weather'] ?? '☀️ Sunny');
+    $tags = (string) ($data['tags'] ?? '');
+    $paperStyle = (string) ($data['paper_style'] ?? 'lined');
+    $starred = (int) ($data['starred'] ?? 0);
+    $canvasJson = (string) ($data['canvas_json'] ?? '');
 
     if ($draftId === null) {
         $stmt = $connection->prepare(
             'INSERT INTO journal_drafts '
-            . '(user_id, title, content, mood_status, entry_date, template_key) '
-            . 'VALUES (?, ?, ?, ?, ?, ?)'
+            . '(user_id, title, content, mood_status, entry_date, template_key, subject, weather, tags, paper_style, starred, canvas_json) '
+            . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
-        $stmt->bind_param('isssss', $userId, $title, $content, $mood, $dateValue, $templateKey);
+        $stmt->bind_param('isssssssssis', $userId, $title, $content, $mood, $dateValue, $templateKey, $subject, $weather, $tags, $paperStyle, $starred, $canvasJson);
         $stmt->execute();
 
         return (int) $connection->insert_id;
@@ -301,26 +313,26 @@ function journalSaveDraft(
 
     $stmt = $connection->prepare(
         'UPDATE journal_drafts '
-        . 'SET title = ?, content = ?, mood_status = ?, entry_date = ?, template_key = ? '
+        . 'SET title = ?, content = ?, mood_status = ?, entry_date = ?, template_key = ?, subject = ?, weather = ?, tags = ?, paper_style = ?, starred = ?, canvas_json = ? '
         . 'WHERE draft_id = ? AND user_id = ?'
     );
     $stmt->bind_param(
-        'sssssii',
+        'sssssssssisii',
         $title,
         $content,
         $mood,
         $dateValue,
         $templateKey,
+        $subject,
+        $weather,
+        $tags,
+        $paperStyle,
+        $starred,
+        $canvasJson,
         $draftId,
         $userId
     );
     $stmt->execute();
-
-    if ($stmt->affected_rows === 0
-        && journalLoadDraftForUser($connection, $draftId, $userId) === null
-    ) {
-        return null;
-    }
 
     return $draftId;
 }
@@ -354,12 +366,19 @@ function journalPublishDraft(
         $content = (string) $data['content'];
         $mood = (string) $data['mood_status'];
         $entryDate = (string) $data['entry_date'];
+        $subject = (string) ($data['subject'] ?? 'General');
+        $weather = (string) ($data['weather'] ?? '☀️ Sunny');
+        $tags = (string) ($data['tags'] ?? '');
+        $paperStyle = (string) ($data['paper_style'] ?? 'lined');
+        $starred = (int) ($data['starred'] ?? 0);
+        $canvasJson = (string) ($data['canvas_json'] ?? '');
+
         $stmt = $connection->prepare(
             'INSERT INTO journal_entries '
-            . '(user_id, title, content, mood_status, entry_date) '
-            . 'VALUES (?, ?, ?, ?, ?)'
+            . '(user_id, title, content, mood_status, entry_date, subject, weather, tags, paper_style, starred, canvas_json) '
+            . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
-        $stmt->bind_param('issss', $userId, $title, $content, $mood, $entryDate);
+        $stmt->bind_param('issssssssis', $userId, $title, $content, $mood, $entryDate, $subject, $weather, $tags, $paperStyle, $starred, $canvasJson);
         $stmt->execute();
         $journalId = (int) $connection->insert_id;
 
@@ -374,6 +393,45 @@ function journalPublishDraft(
         $connection->rollback();
         throw $exception;
     }
+}
+
+function journalUpdateEntry(
+    mysqli $connection,
+    int $journalId,
+    int $userId,
+    array $data
+): bool {
+    $title = (string) $data['title'];
+    $content = (string) $data['content'];
+    $mood = (string) $data['mood_status'];
+    $entryDate = (string) $data['entry_date'];
+    $subject = (string) ($data['subject'] ?? 'General');
+    $weather = (string) ($data['weather'] ?? '☀️ Sunny');
+    $tags = (string) ($data['tags'] ?? '');
+    $paperStyle = (string) ($data['paper_style'] ?? 'lined');
+    $starred = (int) ($data['starred'] ?? 0);
+    $canvasJson = (string) ($data['canvas_json'] ?? '');
+
+    $stmt = $connection->prepare(
+        'UPDATE journal_entries SET title = ?, content = ?, mood_status = ?, entry_date = ?, subject = ?, weather = ?, tags = ?, paper_style = ?, starred = ?, canvas_json = ? '
+        . 'WHERE journal_id = ? AND user_id = ?'
+    );
+    $stmt->bind_param(
+        'ssssssssisii',
+        $title,
+        $content,
+        $mood,
+        $entryDate,
+        $subject,
+        $weather,
+        $tags,
+        $paperStyle,
+        $starred,
+        $canvasJson,
+        $journalId,
+        $userId
+    );
+    return $stmt->execute();
 }
 
 function journalMoodSuggestions(mysqli $connection, int $userId): array

@@ -8,6 +8,7 @@ require __DIR__ . '/journal_helpers.php';
 requireLogin();
 
 $userId = (int) $_SESSION['user_id'];
+$userName = currentUserName();
 $filters = journalFiltersFromRequest($_GET);
 $records = [];
 $drafts = [];
@@ -59,193 +60,208 @@ try {
     $pageError = 'Journal entries are unavailable right now. Please check the database setup.';
 }
 
-$activeFilterLabels = [];
-if ($filters['search'] !== '') {
-    $activeFilterLabels[] = 'Search: ' . $filters['search'];
-}
-if ($filters['mood'] !== '') {
-    $activeFilterLabels[] = 'Mood: ' . $filters['mood'];
-}
-if ($filters['date_from'] !== '') {
-    $activeFilterLabels[] = 'From: ' . $filters['date_from'];
-}
-if ($filters['date_to'] !== '') {
-    $activeFilterLabels[] = 'To: ' . $filters['date_to'];
-}
-if ($filters['sort'] !== 'newest') {
-    $activeFilterLabels[] = 'Sort: ' . (journalSortOptions()[$filters['sort']] ?? $filters['sort']);
-}
-
-$pageTitle = 'Diary Journal';
+$pageTitle = 'Noted.edu - Diary Journal';
+$pageScripts = [
+    BASE_URL . '/assets/js/notability_journal.js?v=20260730-v11'
+];
 require __DIR__ . '/../../includes/header.php';
 ?>
 
-<section class="journal-hero">
-    <div>
-        <p class="eyebrow">Your private writing space</p>
-        <h1>Diary Journal</h1>
-        <p class="hero-copy">Capture thoughts, notice mood patterns, and return to the moments that matter.</p>
-        <div class="journal-summary-row" aria-label="Journal overview">
-            <span><strong><?= number_format($summary['total']); ?></strong> total entries</span>
-            <span><strong><?= number_format($summary['this_month']); ?></strong> this month</span>
-            <span><strong><?= number_format(count($drafts)); ?></strong> saved drafts</span>
-            <span>Latest mood: <strong><?= escapeOutput($summary['latest_mood']); ?></strong></span>
-        </div>
-    </div>
-    <a class="button primary" href="<?= BASE_URL; ?>/modules/journal/create.php">Write New Entry</a>
-</section>
+<div class="noted-app-container">
 
-<?php if ($pageError): ?>
-    <div class="alert alert-error"><?= escapeOutput($pageError); ?></div>
-<?php else: ?>
-    <?php if ($drafts): ?>
-        <section class="journal-draft-section" aria-labelledby="journal-drafts-heading">
-            <div class="journal-board-heading">
-                <div>
-                    <p class="summary-label">Continue where you stopped</p>
-                    <h2 id="journal-drafts-heading">Your Drafts</h2>
-                </div>
-                <span class="muted"><?= number_format(count($drafts)); ?> unfinished</span>
+    <!-- Header Bar -->
+    <header class="noted-header">
+        <a class="noted-brand" href="<?= BASE_URL; ?>/modules/journal/index.php">
+            <div class="noted-brand-icon"><i class="bi bi-journal-richtext"></i></div>
+            <div class="noted-brand-text">
+                <h2>Noted.edu</h2>
+                <span>Student Routine Journal</span>
             </div>
+        </a>
 
-            <div class="journal-draft-grid">
-                <?php foreach ($drafts as $draft): ?>
-                    <?php
-                    $draftTitle = trim((string) $draft['title']) !== ''
-                        ? (string) $draft['title']
-                        : 'Untitled draft';
-                    $draftPreview = trim((string) $draft['content']) !== ''
-                        ? journalPreview((string) $draft['content'], 120)
-                        : 'No writing yet';
-                    $template = $templateOptions[$draft['template_key']] ?? $templateOptions['blank'];
-                    ?>
-                    <article class="journal-draft-card">
-                        <div class="journal-card-topline">
-                            <span class="journal-draft-badge">Draft</span>
-                            <time datetime="<?= escapeOutput($draft['updated_at']); ?>">
-                                Saved <?= escapeOutput(date('M j, g:i A', strtotime($draft['updated_at']))); ?>
-                            </time>
-                        </div>
-                        <h3><?= escapeOutput($draftTitle); ?></h3>
-                        <p><?= escapeOutput($draftPreview); ?></p>
-                        <?php if ($draft['template_key'] !== 'blank'): ?>
-                            <span class="journal-template-label"><?= escapeOutput($template['label']); ?></span>
-                        <?php endif; ?>
-                        <div class="journal-card-actions">
-                            <a class="button small-button primary" href="<?= BASE_URL; ?>/modules/journal/create.php?draft_id=<?= (int) $draft['draft_id']; ?>">
-                                Continue Writing
-                            </a>
-                            <a class="button small-button danger-button" href="<?= BASE_URL; ?>/modules/journal/draft_delete.php?id=<?= (int) $draft['draft_id']; ?>">
-                                Delete Draft
-                            </a>
-                        </div>
-                    </article>
-                <?php endforeach; ?>
-            </div>
-        </section>
-    <?php endif; ?>
-
-    <section class="panel journal-filter-panel" aria-labelledby="journal-filter-heading">
-        <div class="journal-filter-heading">
-            <div>
-                <p class="summary-label">Find a memory</p>
-                <h2 id="journal-filter-heading">Search and filter</h2>
-            </div>
-            <?php if ($activeFilterLabels): ?>
-                <div class="active-filter-list" aria-label="Active filters">
-                    <?php foreach ($activeFilterLabels as $label): ?>
-                        <span><?= escapeOutput($label); ?></span>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <form class="journal-filter-form" method="get" action="<?= BASE_URL; ?>/modules/journal/index.php">
-            <div>
-                <label for="search">Search</label>
-                <input id="search" name="search" type="search" value="<?= escapeOutput($filters['search']); ?>" placeholder="Title or journal content">
-            </div>
-
-            <div>
-                <label for="mood">Mood</label>
-                <select id="mood" name="mood">
-                    <option value="">All moods</option>
-                    <?php foreach ($moodSuggestions as $mood): ?>
-                        <option value="<?= escapeOutput($mood); ?>" <?= $filters['mood'] === $mood ? 'selected' : ''; ?>><?= escapeOutput($mood); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div>
-                <label for="date_from">From</label>
-                <input id="date_from" name="date_from" type="date" value="<?= escapeOutput($filters['date_from']); ?>">
-            </div>
-
-            <div>
-                <label for="date_to">To</label>
-                <input id="date_to" name="date_to" type="date" value="<?= escapeOutput($filters['date_to']); ?>">
-            </div>
-
-            <div>
-                <label for="sort">Sort</label>
-                <select id="sort" name="sort">
-                    <?php foreach (journalSortOptions() as $value => $label): ?>
-                        <option value="<?= escapeOutput($value); ?>" <?= $filters['sort'] === $value ? 'selected' : ''; ?>><?= escapeOutput($label); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="journal-filter-actions">
-                <button class="button primary" type="submit">Apply</button>
-                <a class="button" href="<?= BASE_URL; ?>/modules/journal/index.php">Reset</a>
-            </div>
+        <form class="noted-search-box" method="get" action="<?= BASE_URL; ?>/modules/journal/index.php">
+            <i class="bi bi-search"></i>
+            <input type="search" name="search" value="<?= escapeOutput($filters['search']); ?>" placeholder="Search entries by title or tag...">
         </form>
-    </section>
 
-    <section class="journal-board-heading">
-        <div>
-            <p class="summary-label">Journal library</p>
-            <h2><?= number_format(count($records)); ?> entr<?= count($records) === 1 ? 'y' : 'ies'; ?> showing</h2>
+        <div class="noted-view-switcher">
+            <button type="button" class="noted-view-btn active" data-view="editor"><i class="bi bi-grid"></i> Note Library</button>
+            <button type="button" class="noted-view-btn" data-view="calendar"><i class="bi bi-calendar3"></i> Timeline View</button>
         </div>
-        <a class="button" href="<?= BASE_URL; ?>/modules/journal/create.php">Add Entry</a>
-    </section>
 
-    <?php if (!$records): ?>
-        <section class="panel empty-state">
-            <?php if ($activeFilterLabels): ?>
-                <h2>No entries match these filters</h2>
-                <p class="muted">Try a different search, mood, or date range.</p>
-                <div class="button-row">
-                    <a class="button" href="<?= BASE_URL; ?>/modules/journal/index.php">Reset Filters</a>
-                    <a class="button primary" href="<?= BASE_URL; ?>/modules/journal/create.php">Write New Entry</a>
-                </div>
-            <?php else: ?>
-                <h2>Your journal is ready for its first page</h2>
-                <p class="muted">Choose a writing template or begin with a blank page.</p>
-                <a class="button primary" href="<?= BASE_URL; ?>/modules/journal/create.php">Write First Entry</a>
-            <?php endif; ?>
-        </section>
+        <div class="noted-tools-bar">
+            <a class="button primary" href="<?= BASE_URL; ?>/modules/journal/create.php" style="border-radius:20px; font-weight:800; font-size:13px;"><i class="bi bi-plus-lg"></i> Write New Entry</a>
+        </div>
+    </header>
+
+    <?php if ($pageError): ?>
+        <div class="alert alert-error"><?= escapeOutput($pageError); ?></div>
     <?php else: ?>
-        <section class="journal-card-grid" aria-label="Journal entries">
-            <?php foreach ($records as $record): ?>
-                <?php $wasUpdated = $record['updated_at'] !== $record['created_at']; ?>
-                <article class="journal-card">
-                    <div class="journal-card-topline">
-                        <span class="journal-mood-pill"><?= escapeOutput($record['mood_status']); ?></span>
-                        <time datetime="<?= escapeOutput($record['entry_date']); ?>"><?= escapeOutput(date('M j, Y', strtotime($record['entry_date']))); ?></time>
+
+        <!-- Main Content Area -->
+        <div id="notedEditorView" class="noted-main-grid">
+            
+            <!-- Sidebar -->
+            <aside class="noted-sidebar">
+                <div class="student-profile-banner">
+                    <div class="student-avatar"><?= strtoupper(substr($userName, 0, 1)); ?></div>
+                    <div class="student-info">
+                        <h4><?= escapeOutput($userName); ?></h4>
+                        <p>UTAR Student &middot; Science &amp; Tech</p>
+                        <span class="streak-badge"><i class="bi bi-fire"></i> 12d Study Streak</span>
                     </div>
-                    <h2><a href="<?= BASE_URL; ?>/modules/journal/view.php?id=<?= (int) $record['journal_id']; ?>"><?= escapeOutput($record['title']); ?></a></h2>
-                    <p class="journal-preview"><?= escapeOutput(journalPreview($record['content'])); ?></p>
-                    <p class="journal-updated-note"><?= $wasUpdated ? 'Updated ' . escapeOutput(date('M j, Y g:i A', strtotime($record['updated_at']))) : 'Created ' . escapeOutput(date('M j, Y g:i A', strtotime($record['created_at']))); ?></p>
-                    <div class="journal-card-actions">
-                        <a class="button small-button" href="<?= BASE_URL; ?>/modules/journal/view.php?id=<?= (int) $record['journal_id']; ?>">Read</a>
-                        <a class="button small-button" href="<?= BASE_URL; ?>/modules/journal/edit.php?id=<?= (int) $record['journal_id']; ?>">Edit</a>
-                        <a class="button small-button danger-button" href="<?= BASE_URL; ?>/modules/journal/delete.php?id=<?= (int) $record['journal_id']; ?>">Delete</a>
+                </div>
+
+                <div>
+                    <div class="sidebar-section-title">
+                        <span>Quick Filters</span>
                     </div>
-                </article>
-            <?php endforeach; ?>
-        </section>
+                    <div class="quick-filter-group">
+                        <a class="quick-filter-item active" href="<?= BASE_URL; ?>/modules/journal/index.php">
+                            <span><i class="bi bi-journal-text"></i> All Entries</span>
+                            <span class="badge-count"><?= number_format($summary['total']); ?></span>
+                        </a>
+                        <a class="quick-filter-item" href="<?= BASE_URL; ?>/modules/journal/index.php?starred=1">
+                            <span><i class="bi bi-star-fill" style="color:var(--nj-amber);"></i> Starred Notes</span>
+                            <span class="badge-count">4</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="sidebar-section-title">
+                        <span>Subjects &amp; Courses</span>
+                    </div>
+                    <div class="subject-tag-list">
+                        <span class="subject-tag-pill subject-math">Mathematics</span>
+                        <span class="subject-tag-pill subject-biology">Biology</span>
+                        <span class="subject-tag-pill subject-history">History</span>
+                        <span class="subject-tag-pill subject-literature">Literature</span>
+                        <span class="subject-tag-pill subject-cs">Computer Science</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="sidebar-section-title">
+                        <span>Recent Notes</span>
+                    </div>
+                    <div class="sidebar-notes-list">
+                        <?php if ($records): ?>
+                            <?php foreach (array_slice($records, 0, 5) as $recent): ?>
+                                <a class="sidebar-note-card" href="<?= BASE_URL; ?>/modules/journal/view.php?id=<?= (int) $recent['journal_id']; ?>" style="text-decoration:none;">
+                                    <span class="sidebar-note-title"><?= escapeOutput($recent['title']); ?></span>
+                                    <div class="sidebar-note-meta">
+                                        <span><?= escapeOutput($recent['mood_status']); ?></span>
+                                        <span><?= escapeOutput(date('M j', strtotime($recent['entry_date']))); ?></span>
+                                    </div>
+                                </a>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <span style="font-size:11px; color:var(--nj-muted);">No entries yet.</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- Main Library Content -->
+            <main style="display:flex; flex-direction:column; gap:20px;">
+                
+                <!-- Summary Banner -->
+                <section class="journal-hero" style="border-radius:var(--nj-radius); box-shadow:var(--nj-shadow-sm);">
+                    <div>
+                        <p class="eyebrow">Noted.edu Journal Workspace</p>
+                        <h1>Your Study Journal</h1>
+                        <p class="hero-copy">Capture lectures, daily reflections, and paper notes in one workspace.</p>
+                        <div class="journal-summary-row" aria-label="Journal overview">
+                            <span><i class="bi bi-book"></i> <strong><?= number_format($summary['total']); ?></strong> entries</span>
+                            <span><i class="bi bi-calendar3"></i> <strong><?= number_format($summary['this_month']); ?></strong> this month</span>
+                            <span><i class="bi bi-file-earmark-text"></i> <strong><?= number_format(count($drafts)); ?></strong> drafts</span>
+                            <span><i class="bi bi-emoji-smile"></i> Mood: <strong><?= escapeOutput($summary['latest_mood']); ?></strong></span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Drafts Section -->
+                <?php if ($drafts): ?>
+                    <section class="journal-draft-section" style="margin:0;">
+                        <div class="journal-board-heading">
+                            <div>
+                                <p class="summary-label">Continue where you stopped</p>
+                                <h2>Your Drafts</h2>
+                            </div>
+                            <span class="muted"><?= number_format(count($drafts)); ?> saved</span>
+                        </div>
+
+                        <div class="journal-draft-grid">
+                            <?php foreach ($drafts as $draft): ?>
+                                <?php
+                                $draftTitle = trim((string) $draft['title']) !== '' ? (string) $draft['title'] : 'Untitled draft';
+                                $draftPreview = trim((string) $draft['content']) !== '' ? journalPreview((string) $draft['content'], 100) : 'No writing yet';
+                                ?>
+                                <article class="journal-draft-card">
+                                    <div class="journal-card-topline">
+                                        <span class="journal-draft-badge">Draft</span>
+                                        <time datetime="<?= escapeOutput($draft['updated_at']); ?>"><?= escapeOutput(date('M j, g:i A', strtotime($draft['updated_at']))); ?></time>
+                                    </div>
+                                    <h3><?= escapeOutput($draftTitle); ?></h3>
+                                    <p><?= escapeOutput($draftPreview); ?></p>
+                                    <div class="journal-card-actions">
+                                        <a class="button small-button primary" href="<?= BASE_URL; ?>/modules/journal/create.php?draft_id=<?= (int) $draft['draft_id']; ?>"><i class="bi bi-pen"></i> Continue</a>
+                                        <a class="button small-button danger-button" href="<?= BASE_URL; ?>/modules/journal/draft_delete.php?id=<?= (int) $draft['draft_id']; ?>"><i class="bi bi-trash3"></i> Delete</a>
+                                    </div>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+                <?php endif; ?>
+
+
+                <!-- Entries Grid -->
+                <section>
+                    <div class="journal-board-heading">
+                        <div>
+                            <p class="summary-label">Notes Library</p>
+                            <h2><?= number_format(count($records)); ?> Note<?= count($records) === 1 ? '' : 's'; ?></h2>
+                        </div>
+                        <a class="button primary" href="<?= BASE_URL; ?>/modules/journal/create.php"><i class="bi bi-plus-lg"></i> Add Entry</a>
+                    </div>
+
+                    <?php if (!$records): ?>
+                        <section class="panel empty-state">
+                            <h2>Your journal is ready for its first page</h2>
+                            <p class="muted">Start writing using interactive paper templates, drawing tools, and AI reflection prompts.</p>
+                            <a class="button primary" href="<?= BASE_URL; ?>/modules/journal/create.php">Write First Entry</a>
+                        </section>
+                    <?php else: ?>
+                        <div class="journal-card-grid">
+                            <?php foreach ($records as $record): ?>
+                                <article class="journal-card">
+                                    <div class="journal-card-topline">
+                                        <span class="journal-mood-pill"><i class="bi bi-emoji-smile"></i> <?= escapeOutput($record['mood_status']); ?></span>
+                                        <time datetime="<?= escapeOutput($record['entry_date']); ?>"><?= escapeOutput(date('M j, Y', strtotime($record['entry_date']))); ?></time>
+                                    </div>
+                                    <h2><a href="<?= BASE_URL; ?>/modules/journal/view.php?id=<?= (int) $record['journal_id']; ?>"><?= escapeOutput($record['title']); ?></a></h2>
+                                    <p class="journal-preview"><?= escapeOutput(journalPreview($record['content'])); ?></p>
+                                    <div class="journal-card-actions">
+                                        <a class="button small-button" href="<?= BASE_URL; ?>/modules/journal/view.php?id=<?= (int) $record['journal_id']; ?>"><i class="bi bi-eye"></i> Read</a>
+                                        <a class="button small-button" href="<?= BASE_URL; ?>/modules/journal/edit.php?id=<?= (int) $record['journal_id']; ?>"><i class="bi bi-pencil"></i> Edit</a>
+                                        <a class="button small-button danger-button" href="<?= BASE_URL; ?>/modules/journal/delete.php?id=<?= (int) $record['journal_id']; ?>"><i class="bi bi-trash3"></i> Delete</a>
+                                    </div>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </section>
+
+            </main>
+        </div>
+
+        <!-- Timeline View (Dynamic JS Calendar Engine) -->
+        <div id="notedCalendarView" class="calendar-timeline-view" style="display:none;" data-journal-entries='<?= htmlspecialchars(json_encode($records ?? []), ENT_QUOTES, 'UTF-8'); ?>'></div>
+
     <?php endif; ?>
-<?php endif; ?>
+
+</div>
 
 <?php require __DIR__ . '/../../includes/footer.php'; ?>

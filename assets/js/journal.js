@@ -150,6 +150,16 @@
     updateEditorMetrics();
 
     function collectDraft() {
+        if (typeof window.serializeNotedCanvas === 'function') {
+            window.serializeNotedCanvas();
+        }
+
+        const subjectInput = form.querySelector('[name="subject"]');
+        const weatherInput = form.querySelector('[name="weather"]');
+        const tagsInput = form.querySelector('[name="tags"]');
+        const paperStyleInput = form.querySelector('[name="paper_style"]');
+        const canvasJsonInput = form.querySelector('[name="canvas_json"]');
+
         return {
             csrf_token: form.querySelector('input[name="csrf_token"]')?.value || '',
             draft_id: draftIdInput instanceof HTMLInputElement ? draftIdInput.value : '',
@@ -158,6 +168,11 @@
             mood_status: moodField instanceof HTMLInputElement ? moodField.value : '',
             entry_date: dateField instanceof HTMLInputElement ? dateField.value : '',
             template_key: templateInput instanceof HTMLInputElement ? templateInput.value : 'blank',
+            subject: subjectInput ? subjectInput.value : 'General',
+            weather: weatherInput ? weatherInput.value : '☀️ Sunny',
+            tags: tagsInput ? tagsInput.value : '',
+            paper_style: paperStyleInput ? paperStyleInput.value : 'lined',
+            canvas_json: canvasJsonInput ? canvasJsonInput.value : '',
         };
     }
 

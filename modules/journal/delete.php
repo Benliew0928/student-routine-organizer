@@ -76,8 +76,8 @@ require __DIR__ . '/../../includes/header.php';
         <form method="post" action="<?= BASE_URL; ?>/modules/journal/delete.php?id=<?= (int) $journalId; ?>">
             <?= csrfInput(); ?>
             <div class="button-row">
-                <button class="button primary danger-primary" type="submit">Delete Entry Permanently</button>
-                <a class="button" href="<?= BASE_URL; ?>/modules/journal/view.php?id=<?= (int) $journalId; ?>">Keep Entry</a>
+                <button class="button primary danger-primary" type="submit"><i class="bi bi-trash3"></i> Delete Entry Permanently</button>
+                <a class="button" href="<?= BASE_URL; ?>/modules/journal/view.php?id=<?= (int) $journalId; ?>"><i class="bi bi-shield-check"></i> Keep Entry</a>
             </div>
         </form>
     <?php endif; ?>

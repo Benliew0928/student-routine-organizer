@@ -84,9 +84,9 @@ $draftTitle = $draft && trim((string) $draft['title']) !== ''
         <form method="post" action="<?= BASE_URL; ?>/modules/journal/draft_delete.php?id=<?= (int) $draftId; ?>">
             <?= csrfInput(); ?>
             <div class="button-row">
-                <button class="button danger-button" type="submit">Delete Draft</button>
+                <button class="button danger-button" type="submit"><i class="bi bi-trash3"></i> Delete Draft</button>
                 <a class="button" href="<?= BASE_URL; ?>/modules/journal/create.php?draft_id=<?= (int) $draftId; ?>">
-                    Keep Draft
+                    <i class="bi bi-shield-check"></i> Keep Draft
                 </a>
             </div>
         </form>
