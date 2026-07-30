@@ -16,7 +16,7 @@ $pageTitle = $pageTitle ?? APP_NAME;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="<?= BASE_URL; ?>/assets/css/style.css?v=20260725-exercise-blog-x-complete">
+    <link rel="stylesheet" href="<?= BASE_URL; ?>/assets/css/style.css?v=20260728-exercise-achievement-roman">
     <link rel="stylesheet" href="<?= BASE_URL; ?>/assets/css/notability_journal.css?v=20260730-v8">
     <script>window.BASE_URL = <?= json_encode(BASE_URL); ?>;</script>
 </head>

@@ -13,7 +13,6 @@ $showWorkoutHistory = ($_GET['history'] ?? '') === '1';
 $currentQuery = exerciseReturnQuery($filters);
 $records = [];
 $workoutRecords = [];
-$exerciseBlogs = [];
 $summary = [
     'total' => 0,
     'minutes' => 0,
@@ -35,12 +34,15 @@ $progressStats = [
     'best_day_calories' => 0,
     'best_day_label' => 'No workout yet',
 ];
+$achievementStats = [
+    'active_days_all_time' => 0,
+    'longest_session' => 0,
+];
 $mostFrequentActivity = 'No activity yet';
 $pageError = null;
 
 try {
     $connection = getDatabaseConnection();
-    exerciseEnsureBlogTable($connection);
 
     $summaryStmt = $connection->prepare('SELECT COUNT(*) AS total, COALESCE(SUM(duration_minutes), 0) AS minutes, COALESCE(SUM(calories_burned), 0) AS calories, COALESCE(AVG(duration_minutes), 0) AS average_duration FROM exercise_records WHERE user_id = ?');
     $summaryStmt->bind_param('i', $userId);
@@ -65,6 +67,13 @@ try {
     $todayStmt->execute();
     $todayRow = $todayStmt->get_result()->fetch_assoc();
     $dashboardStats['today_calories'] = (int) $todayRow['calories'];
+
+    $achievementStmt = $connection->prepare('SELECT COUNT(DISTINCT exercise_date) AS active_days_all_time, COALESCE(MAX(duration_minutes), 0) AS longest_session FROM exercise_records WHERE user_id = ?');
+    $achievementStmt->bind_param('i', $userId);
+    $achievementStmt->execute();
+    $achievementRow = $achievementStmt->get_result()->fetch_assoc();
+    $achievementStats['active_days_all_time'] = (int) $achievementRow['active_days_all_time'];
+    $achievementStats['longest_session'] = (int) $achievementRow['longest_session'];
 
     $dailyStmt = $connection->prepare('SELECT exercise_date, COALESCE(SUM(calories_burned), 0) AS calories FROM exercise_records WHERE user_id = ? AND exercise_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) GROUP BY exercise_date ORDER BY exercise_date ASC');
     $dailyStmt->bind_param('i', $userId);
@@ -133,11 +142,6 @@ try {
         $workoutRecords = array_values($latestByActivity);
     }
 
-    $blogStmt = $connection->prepare('SELECT blog_id, title, content, blog_date FROM exercise_blogs WHERE user_id = ? ORDER BY blog_date DESC, blog_id DESC');
-    $blogStmt->bind_param('i', $userId);
-    $blogStmt->execute();
-    $exerciseBlogs = $blogStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-
     if (($_GET['export'] ?? '') === 'csv') {
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="exercise-tracker-export.csv"');
@@ -181,12 +185,15 @@ if ($filters['sort'] !== 'newest') {
 $exerciseViews = [
     'dashboard' => ['label' => 'Dashboard', 'icon' => 'bi-speedometer2'],
     'workouts' => ['label' => 'Workouts', 'icon' => 'bi-clipboard2-pulse'],
-    'blogs' => ['label' => 'Blogs', 'icon' => 'bi-journal-richtext'],
+    'achievements' => ['label' => 'Achievements', 'icon' => 'bi-trophy'],
     'progress' => ['label' => 'Progress', 'icon' => 'bi-graph-up-arrow'],
 ];
 $currentView = cleanInput((string) ($_GET['view'] ?? 'dashboard'));
 if ($currentView === 'tutorial') {
     $currentView = 'progress';
+}
+if ($currentView === 'blogs') {
+    $currentView = 'achievements';
 }
 if (!array_key_exists($currentView, $exerciseViews)) {
     $currentView = 'dashboard';
@@ -223,6 +230,129 @@ $pieTooltipText = $dashboardStats['category_totals'] ? 'Hover a category' : 'No 
 $pieSlicesJson = json_encode($pieSlices, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES);
 $calorieGoalPercent = min(100, (int) round(($summary['week_calories'] / $progressStats['weekly_goal_calories']) * 100));
 $minuteGoalPercent = min(100, (int) round(($summary['week_minutes'] / $progressStats['weekly_goal_minutes']) * 100));
+$achievementCards = [
+    [
+        'title' => 'First Workout',
+        'description' => 'Log your first exercise routine.',
+        'icon' => 'bi-flag',
+        'current' => $summary['total'],
+        'target' => 1,
+        'unit' => 'session',
+        'tone' => 'green',
+    ],
+    [
+        'title' => 'Routine Builder',
+        'description' => 'Build a steady habit by completing more workout sessions.',
+        'icon' => 'bi-calendar2-check',
+        'current' => $summary['total'],
+        'levels' => [5, 15, 30],
+        'unit' => 'sessions',
+        'tone' => 'teal',
+    ],
+    [
+        'title' => 'Calorie Burner',
+        'description' => 'Burn more calories across your logged workouts.',
+        'icon' => 'bi-fire',
+        'current' => $summary['calories'],
+        'levels' => [1000, 3000, 6000],
+        'unit' => 'kcal',
+        'tone' => 'orange',
+    ],
+    [
+        'title' => 'Active Minutes',
+        'description' => 'Collect more active minutes during the current week.',
+        'icon' => 'bi-stopwatch',
+        'current' => $summary['week_minutes'],
+        'levels' => [150, 225, 300],
+        'unit' => 'min',
+        'tone' => 'blue',
+    ],
+    [
+        'title' => 'Goal Crusher',
+        'description' => 'Push past your weekly calorie goal in stronger stages.',
+        'icon' => 'bi-lightning-charge',
+        'current' => $summary['week_calories'],
+        'levels' => [
+            $progressStats['weekly_goal_calories'],
+            (int) ceil(($progressStats['weekly_goal_calories'] * 1.25) / 50) * 50,
+            (int) ceil(($progressStats['weekly_goal_calories'] * 1.5) / 50) * 50,
+        ],
+        'unit' => 'kcal',
+        'tone' => 'purple',
+    ],
+    [
+        'title' => 'Consistency Streak',
+        'description' => 'Exercise on more different days during the current week.',
+        'icon' => 'bi-repeat',
+        'current' => $progressStats['active_days'],
+        'levels' => [3, 5, 7],
+        'unit' => 'days',
+        'tone' => 'green',
+    ],
+    [
+        'title' => 'Sport Explorer',
+        'description' => 'Try 5 different workout categories.',
+        'icon' => 'bi-compass',
+        'current' => count($dashboardStats['category_totals']),
+        'target' => 5,
+        'unit' => 'types',
+        'tone' => 'teal',
+    ],
+    [
+        'title' => 'Endurance Session',
+        'description' => 'Complete longer single workout sessions.',
+        'icon' => 'bi-award',
+        'current' => $achievementStats['longest_session'],
+        'levels' => [60, 75, 90],
+        'unit' => 'min',
+        'tone' => 'blue',
+    ],
+];
+$achievementCards = array_map(static function (array $achievementCard): array {
+    $levels = $achievementCard['levels'] ?? null;
+    $current = (int) $achievementCard['current'];
+    $romanLevels = [1 => 'I', 2 => 'II', 3 => 'III'];
+
+    if ($levels) {
+        $levels = array_values(array_map('intval', $levels));
+        $completedLevels = 0;
+        foreach ($levels as $levelTarget) {
+            if ($current >= $levelTarget) {
+                $completedLevels++;
+            }
+        }
+
+        $activeLevelIndex = min($completedLevels, count($levels) - 1);
+        $target = $levels[$activeLevelIndex];
+        $achievementCard['target'] = $target;
+        $achievementCard['final_target'] = $levels[count($levels) - 1];
+        $achievementCard['level'] = min($completedLevels + 1, count($levels));
+        $achievementCard['level_count'] = count($levels);
+        $achievementCard['completed_levels'] = $completedLevels;
+        $achievementCard['is_unlocked'] = $completedLevels >= count($levels);
+        $achievementCard['percent'] = min(100, (int) round(($current / max(1, $target)) * 100));
+        $achievementCard['display_title'] = $achievementCard['title'] . ' ' . ($romanLevels[$achievementCard['level']] ?? (string) $achievementCard['level']);
+
+        return $achievementCard;
+    }
+
+    $target = (int) $achievementCard['target'];
+    $achievementCard['final_target'] = $target;
+    $achievementCard['level'] = null;
+    $achievementCard['level_count'] = null;
+    $achievementCard['completed_levels'] = null;
+    $achievementCard['is_unlocked'] = $current >= $target;
+    $achievementCard['percent'] = min(100, (int) round(($current / max(1, $target)) * 100));
+    $achievementCard['display_title'] = $achievementCard['title'];
+
+    return $achievementCard;
+}, $achievementCards);
+$completedAchievements = 0;
+foreach ($achievementCards as $achievementCard) {
+    if ($achievementCard['is_unlocked']) {
+        $completedAchievements++;
+    }
+}
 
 $pageTitle = 'Exercise Tracker';
 require __DIR__ . '/../../includes/header.php';
@@ -471,49 +601,76 @@ require __DIR__ . '/../../includes/header.php';
                 <?php endforeach; ?>
             </section>
         <?php endif; ?>
-    <?php elseif ($currentView === 'blogs'): ?>
-        <section class="exercise-blog-hero" aria-label="Exercise blog overview">
+    <?php elseif ($currentView === 'achievements'): ?>
+        <section class="exercise-achievement-hero" aria-label="Exercise achievement overview">
             <div>
-                <p class="summary-label">Exercise Blogs</p>
-                <h2>Training Journal</h2>
-                <p class="muted">Capture workout reflections, fitness ideas, recovery notes, and progress stories in one polished space.</p>
+                <p class="summary-label">Achievement Room</p>
+                <h2>Your Fitness Awards</h2>
+                <p class="muted">Unlock badges as you log workouts, burn calories, keep active days, and try new activities.</p>
             </div>
-            <a class="button primary exercise-blog-compose" href="<?= BASE_URL; ?>/modules/exercise/create_blog.php"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add Blog</a>
+            <div class="exercise-achievement-score">
+                <strong><?= (int) $completedAchievements; ?></strong>
+                <span>of <?= count($achievementCards); ?> unlocked</span>
+            </div>
         </section>
 
-        <?php if (!$exerciseBlogs): ?>
-            <section class="panel empty-state exercise-blog-empty">
-                <h2>No exercise blogs yet</h2>
-                <p class="muted">Write your first workout reflection, fitness tip, or progress update.</p>
-                <a class="button primary" href="<?= BASE_URL; ?>/modules/exercise/create_blog.php"><i class="bi bi-pencil-square" aria-hidden="true"></i> Add Blog</a>
+        <section class="exercise-achievement-summary" aria-label="Achievement summary">
+            <article>
+                <span>Total workouts</span>
+                <strong><?= number_format($summary['total']); ?></strong>
+            </article>
+            <article>
+                <span>Total calories</span>
+                <strong><?= number_format($summary['calories']); ?> kcal</strong>
+            </article>
+            <article>
+                <span>Active days</span>
+                <strong><?= number_format($achievementStats['active_days_all_time']); ?></strong>
+            </article>
+            <article>
+                <span>Longest session</span>
+                <strong><?= number_format($achievementStats['longest_session']); ?> min</strong>
+            </article>
+        </section>
+
+        <?php if ($summary['total'] <= 0): ?>
+            <section class="panel empty-state exercise-achievement-empty">
+                <h2>No achievements unlocked yet</h2>
+                <p class="muted">Log your first workout to start collecting badges.</p>
+                <a class="button primary" href="<?= BASE_URL; ?>/modules/exercise/create.php"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add Exercise</a>
             </section>
-        <?php else: ?>
-        <section class="exercise-blog-grid" aria-label="Exercise blogs">
-            <?php foreach ($exerciseBlogs as $blog): ?>
+        <?php endif; ?>
+
+        <section class="exercise-achievement-grid" aria-label="Exercise achievements">
+            <?php foreach ($achievementCards as $achievementCard): ?>
                 <?php
-                    $blogDate = new DateTime((string) $blog['blog_date']);
-                    $blogContent = (string) $blog['content'];
+                    $achievementUnlocked = (bool) $achievementCard['is_unlocked'];
+                    $achievementPercent = (int) $achievementCard['percent'];
+                    $achievementTargetLabel = $achievementCard['level_count']
+                        ? 'Level target'
+                        : 'Target';
                 ?>
-                <article class="exercise-blog-card">
-                    <a class="exercise-blog-delete" href="<?= BASE_URL; ?>/modules/exercise/delete_blog.php?id=<?= (int) $blog['blog_id']; ?>" aria-label="Delete <?= escapeOutput($blog['title']); ?> blog">
-                        <i class="bi bi-x-lg" aria-hidden="true"></i>
-                    </a>
-                    <div class="exercise-blog-date">
-                        <span><?= escapeOutput($blogDate->format('M')); ?></span>
-                        <strong><?= escapeOutput($blogDate->format('j')); ?></strong>
-                        <small><?= escapeOutput($blogDate->format('Y')); ?></small>
+                <article class="exercise-achievement-card exercise-achievement-<?= escapeOutput($achievementCard['tone']); ?> <?= $achievementUnlocked ? 'is-unlocked' : 'is-locked'; ?>">
+                    <div class="exercise-achievement-icon">
+                        <i class="bi <?= escapeOutput($achievementCard['icon']); ?>" aria-hidden="true"></i>
                     </div>
-                    <div class="exercise-blog-body">
-                        <h2><?= escapeOutput($blog['title']); ?></h2>
-                        <p><?= nl2br(escapeOutput($blogContent)); ?></p>
+                    <div class="exercise-achievement-body">
+                        <div class="exercise-achievement-kicker">
+                            <span><?= $achievementUnlocked ? 'Unlocked' : 'In progress'; ?></span>
+                        </div>
+                        <h2><?= escapeOutput($achievementCard['display_title']); ?></h2>
+                        <p><?= escapeOutput($achievementCard['description']); ?></p>
                     </div>
-                    <div class="exercise-blog-actions">
-                        <a class="button small-button" href="<?= BASE_URL; ?>/modules/exercise/edit_blog.php?id=<?= (int) $blog['blog_id']; ?>"><i class="bi bi-pencil-square" aria-hidden="true"></i> Edit</a>
+                    <div class="exercise-achievement-progress" aria-label="<?= escapeOutput($achievementCard['title']); ?> progress">
+                        <div>
+                            <span><?= escapeOutput($achievementTargetLabel); ?>: <?= number_format(min((int) $achievementCard['current'], (int) $achievementCard['target'])); ?> / <?= number_format((int) $achievementCard['target']); ?> <?= escapeOutput($achievementCard['unit']); ?></span>
+                            <strong><?= $achievementPercent; ?>%</strong>
+                        </div>
+                        <i style="width: <?= $achievementPercent; ?>%;"></i>
                     </div>
                 </article>
             <?php endforeach; ?>
         </section>
-        <?php endif; ?>
     <?php elseif ($currentView === 'progress'): ?>
         <section class="exercise-progress-grid" aria-label="Exercise progress tools">
             <article class="panel exercise-bmi-card">
