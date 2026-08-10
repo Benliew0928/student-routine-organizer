@@ -20,6 +20,8 @@ $expenseBreakdown = [];
 $expenseTrend = [];
 $monthlyExpenseTotal = 0.00;
 $previousMonthlyExpenseTotal = 0.00;
+$savingsGoal = null;
+$savingsGoals = [];
 $analysisIncomeBreakdown = [];
 $analysisExpenseBreakdown = [];
 $availableYears = [(int) date('Y')];
@@ -47,6 +49,10 @@ try {
     $currentMonth = new DateTimeImmutable('first day of this month');
     $monthlyExpenseTotal = moneyGetExpenseTotalForMonth($connection, $userId, $currentMonth);
     $previousMonthlyExpenseTotal = moneyGetExpenseTotalForMonth($connection, $userId, $currentMonth->modify('-1 month'));
+    $savingsGoals = moneySavingsGoalsForUser($connection, $userId);
+    $currentSavingsGoals = array_values(array_filter($savingsGoals, static fn (array $goal): bool => in_array($goal['status'], ['active', 'paused'], true)));
+    $pastSavingsGoals = array_values(array_filter($savingsGoals, static fn (array $goal): bool => in_array($goal['status'], ['completed', 'archived'], true)));
+    $savingsGoal = $currentSavingsGoals[0] ?? $pastSavingsGoals[0] ?? null;
 
     $analysisSummary = moneyGetSummary($connection, $userId, $analysisFilters);
     $analysisIncomeBreakdown = moneyGetCategoryBreakdown($connection, $userId, 'income', $analysisFilters);
@@ -116,8 +122,7 @@ if ($filters['sort'] !== 'newest') {
     $activeFilterLabels[] = 'Sort: ' . (moneySortOptions()[$filters['sort']] ?? $filters['sort']);
 }
 
-$showAllTransactions = ($_GET['show'] ?? '') === 'all';
-$visibleRecords = $showAllTransactions ? $records : array_slice($records, 0, 8);
+$visibleRecords = $records;
 
 $pageTitle = 'Money Tracker';
 require __DIR__ . '/../../includes/header.php';
@@ -211,9 +216,15 @@ $categoryIcons = ['Food' => '🍜', 'Transport' => '🚌', 'Shopping' => '🛍',
 <?php endif; ?>
 
 <?php
-$goalTarget = 5000.00;
-$goalSaved = max(0.00, (float) $summary['balance']);
-$goalProgress = min(100, (int) round(($goalSaved / $goalTarget) * 100));
+$goalTarget = $savingsGoal ? (float) $savingsGoal['target_amount'] : 0.00;
+$goalSaved = $savingsGoal ? (float) $savingsGoal['saved_amount'] : 0.00;
+$goalProgress = $goalTarget > 0 ? min(100, round(($goalSaved / $goalTarget) * 100, 1)) : 0.0;
+$goalProgressLabel = number_format($goalProgress, 1);
+$currentSavingsGoals = $currentSavingsGoals ?? [];
+$pastSavingsGoals = $pastSavingsGoals ?? [];
+$currentSavingsGoalCount = count($currentSavingsGoals);
+$pastSavingsGoalCount = count($pastSavingsGoals);
+$selectedSavingsGoalId = (int) ($_GET['goal_id'] ?? 0);
 $donutCircumference = 351.86;
 $analysisChartCircumference = 439.82;
 $miniCharts = [
@@ -321,6 +332,7 @@ $topIncomeShare = $topIncomeSource && $incomeTotal > 0 ? ((float) $topIncomeSour
     </section>
 </template>
 <div class="money-spending-stage" data-money-spending-stage></div>
+<div class="money-goal-stage" data-money-goal-stage></div>
 <section class="money-workspace" aria-label="Money tracker workspace">
 <div class="money-transaction-column">
 <?php if ($pageError): ?>
@@ -411,8 +423,8 @@ $topIncomeShare = $topIncomeSource && $incomeTotal > 0 ? ((float) $topIncomeSour
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($visibleRecords as $record): ?>
-                        <tr>
+                    <?php foreach ($visibleRecords as $recordIndex => $record): ?>
+                        <tr class="<?= $recordIndex >= 12 ? 'money-extra-record' : ''; ?>" <?= $recordIndex >= 12 ? 'hidden' : ''; ?>>
                             <td><?= escapeOutput($record['transaction_date']); ?></td>
                             <td>
                                 <span><?= $record['description'] !== '' && $record['description'] !== null ? escapeOutput($record['description']) : '<span class="muted">No description</span>'; ?></span>
@@ -438,10 +450,8 @@ $topIncomeShare = $topIncomeSource && $incomeTotal > 0 ? ((float) $topIncomeSour
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            <?php if (count($records) > 8 && !$showAllTransactions): ?>
-                <div class="money-table-footer"><a class="money-view-all" href="<?= BASE_URL; ?>/modules/money/index.php<?= $currentQuery !== '' ? '?' . escapeOutput($currentQuery . '&show=all') : '?show=all'; ?>#transactions">View more transactions <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
-            <?php elseif ($showAllTransactions && count($records) > 8): ?>
-                <div class="money-table-footer"><a class="money-view-all" href="<?= BASE_URL; ?>/modules/money/index.php<?= $currentQuery !== '' ? '?' . escapeOutput($currentQuery) : ''; ?>#transactions">Show recent transactions <i class="bi bi-arrow-up" aria-hidden="true"></i></a></div>
+            <?php if (count($records) > 12): ?>
+                <div class="money-table-footer"><button class="money-view-all money-show-more-button" type="button" data-money-show-more aria-expanded="false">View all records <i class="bi bi-arrow-down" aria-hidden="true"></i></button></div>
             <?php endif; ?>
         </section>
     <?php endif; ?>
@@ -502,11 +512,18 @@ $topIncomeShare = $topIncomeSource && $incomeTotal > 0 ? ((float) $topIncomeSour
         <div class="money-net-balance"><span class="money-balance-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 3v17M6 7h12M8 7 4.5 14h7L8 7Zm8 0-3.5 7h7L16 7ZM3 20h18"/></svg></span><span>Net balance</span><strong>RM <?= number_format((float) $summary['balance'], 2); ?></strong></div>
     </section>
 
-    <section class="money-insight-card money-saving-card">
-        <div class="money-insight-heading"><div><p class="summary-label">Your next milestone</p><h2>Savings goal</h2></div><i class="bi bi-piggy-bank saving-icon" aria-hidden="true"></i></div>
-        <div class="saving-goal-main"><div><strong><?= $goalProgress; ?>%</strong><p>New laptop fund</p></div><span>RM <?= number_format($goalSaved, 2); ?><small> saved of RM <?= number_format($goalTarget, 2); ?></small></span></div>
-        <div class="saving-progress" aria-label="<?= $goalProgress; ?> percent saved"><i style="width: <?= $goalProgress; ?>%"></i></div>
-        <p class="saving-note">Keep building your balance — every transaction brings this goal closer.</p>
+    <section class="money-insight-card money-saving-card money-goal-launch" data-money-goal-expand data-money-goal-url="<?= BASE_URL; ?>/modules/money/goals.php?embed=1<?= $selectedSavingsGoalId > 0 ? '&amp;goal_id=' . $selectedSavingsGoalId : ''; ?>" tabindex="0" role="button" aria-expanded="false" aria-label="Expand savings goal">
+        <div class="money-insight-heading"><div><p class="summary-label">Savings planner</p><h2>Savings plans</h2></div><span class="saving-icon" aria-label="Savings plans"><i class="bi bi-bookmark-check" aria-hidden="true"></i></span></div>
+        <?php if ($currentSavingsGoalCount > 0 && $savingsGoal): ?>
+        <div class="saving-goal-main"><div><strong><?= $goalProgressLabel; ?>%</strong><p><?= escapeOutput($savingsGoal['goal_name']); ?></p></div><span>RM <?= number_format($goalSaved, 2); ?><small>saved of RM <?= number_format($goalTarget, 2); ?></small></span></div>
+        <div class="saving-progress" aria-label="<?= $goalProgressLabel; ?> percent saved"><i style="width: <?= $goalProgress; ?>%"></i></div>
+        <div class="saving-progress-line"><span><?= $savingsGoal['status'] === 'paused' ? 'Paused' : ($goalProgress >= 100 ? 'Target reached' : 'In progress'); ?></span><span><?= $currentSavingsGoalCount; ?> current plan<?= $currentSavingsGoalCount === 1 ? '' : 's'; ?></span></div>
+        <p class="saving-note"><?= $savingsGoal['status'] === 'completed' ? 'Goal completed — view your recorded progress.' : ($savingsGoal['status'] === 'paused' ? 'This goal is paused — open it to resume.' : 'Record savings manually to update your progress.'); ?></p>
+        <?php elseif ($savingsGoal): ?>
+        <div class="saving-goal-empty"><strong>No current plans</strong><p><?= $pastSavingsGoalCount; ?> past plan<?= $pastSavingsGoalCount === 1 ? '' : 's'; ?> available to review.</p><span>View past plans <i class="bi bi-arrow-right" aria-hidden="true"></i></span></div>
+        <?php else: ?>
+        <div class="saving-goal-empty"><strong>Set your first plan</strong><p>Track every real contribution under its own plan.</p><span>Get started <i class="bi bi-arrow-right" aria-hidden="true"></i></span></div>
+        <?php endif; ?>
     </section>
 </aside>
 </section>
@@ -520,6 +537,18 @@ const savedMoneyScroll = window.sessionStorage.getItem('moneyTrackerScrollY');
 if (savedMoneyScroll !== null) {
     window.sessionStorage.removeItem('moneyTrackerScrollY');
     window.requestAnimationFrame(() => window.scrollTo(0, Number(savedMoneyScroll)));
+}
+
+const showMoreButton = document.querySelector('[data-money-show-more]');
+if (showMoreButton instanceof HTMLButtonElement) {
+    showMoreButton.addEventListener('click', () => {
+        const isExpanded = showMoreButton.getAttribute('aria-expanded') === 'true';
+        document.querySelectorAll('.money-extra-record').forEach((row) => { row.hidden = isExpanded; });
+        showMoreButton.setAttribute('aria-expanded', String(!isExpanded));
+        showMoreButton.innerHTML = isExpanded
+            ? 'View all records <i class="bi bi-arrow-down" aria-hidden="true"></i>'
+            : 'Show recent records <i class="bi bi-arrow-up" aria-hidden="true"></i>';
+    });
 }
 
 document.querySelectorAll('.money-donut-segment, .money-category-row').forEach((item) => {
@@ -615,6 +644,7 @@ if (cashFlowCard && cashFlowStage) {
         }
 
         window.dispatchEvent(new Event('money:collapse-spending'));
+        window.dispatchEvent(new Event('money:collapse-goal'));
         closeMoneyFilterDrawer();
         cashFlowCard.before(cashFlowPlaceholder);
         cashFlowStage.append(cashFlowCard);
@@ -639,6 +669,99 @@ if (cashFlowCard && cashFlowStage) {
     if (new URLSearchParams(window.location.search).get('analysis_open') === '1') {
         window.requestAnimationFrame(() => cashFlowCard.click());
     }
+}
+
+const goalCard = document.querySelector('[data-money-goal-expand]');
+const goalStage = document.querySelector('[data-money-goal-stage]');
+if (goalCard && goalStage) {
+    const originalGoalMarkup = goalCard.innerHTML;
+    const goalPlaceholder = document.createComment('savings goal card position');
+    const collapseGoalCard = () => {
+        goalCard.classList.remove('is-expanded');
+        goalCard.setAttribute('aria-expanded', 'false');
+        goalCard.setAttribute('role', 'button');
+        goalCard.setAttribute('tabindex', '0');
+        goalCard.innerHTML = originalGoalMarkup;
+        goalPlaceholder.replaceWith(goalCard);
+        const url = new URL(window.location.href); url.searchParams.delete('goal_open'); window.history.replaceState({}, '', url);
+        goalCard.focus();
+    };
+    const setGoalTab = (tabName) => {
+        goalCard.querySelectorAll('[data-money-goal-tab]').forEach((tab) => {
+            const isSelected = tab.dataset.moneyGoalTab === tabName;
+            tab.classList.toggle('is-selected', isSelected);
+            tab.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+        });
+        goalCard.querySelectorAll('[data-money-goal-panel]').forEach((panel) => {
+            panel.hidden = panel.dataset.moneyGoalPanel !== tabName;
+        });
+    };
+    const syncWeeklyPlanFields = (scope) => {
+        scope.querySelectorAll('[data-money-weekly-plan]').forEach((toggle) => {
+            const form = toggle.closest('form');
+            const weeklyInput = form?.querySelector('[data-money-weekly-amount]');
+            const weeklyField = form?.querySelector('[data-money-weekly-amount-field]');
+            if (!weeklyInput || !weeklyField) return;
+            const isEnabled = toggle.checked;
+            weeklyInput.disabled = !isEnabled;
+            weeklyInput.required = isEnabled;
+            weeklyField.classList.toggle('is-disabled', !isEnabled);
+            if (!isEnabled) weeklyInput.value = '0.00';
+        });
+    };
+    const loadGoalTemplate = async (goalId = null, preserveContent = false) => {
+        const goalUrl = new URL(goalCard.dataset.moneyGoalUrl, window.location.origin);
+        if (goalId) goalUrl.searchParams.set('goal_id', goalId);
+        if (!preserveContent) {
+            goalCard.innerHTML = '<button class="money-analysis-inline-close" type="button" data-money-goal-collapse><i class="bi bi-x-lg" aria-hidden="true"></i> Close</button><p class="money-analysis-inline-loading">Loading plan&hellip;</p>';
+        }
+        try {
+            const response = await fetch(goalUrl, { credentials: 'same-origin' });
+            const documentResponse = new DOMParser().parseFromString(await response.text(), 'text/html');
+            const template = documentResponse.querySelector('#money-goal-template');
+            if (!response.ok || !template) throw new Error('Unable to load plan');
+            goalCard.innerHTML = '<button class="money-analysis-inline-close" type="button" data-money-goal-collapse><i class="bi bi-x-lg" aria-hidden="true"></i> Close</button>' + template.innerHTML;
+            syncWeeklyPlanFields(goalCard);
+        } catch (error) {
+            if (!preserveContent) {
+                goalCard.innerHTML = '<button class="money-analysis-inline-close" type="button" data-money-goal-collapse><i class="bi bi-x-lg" aria-hidden="true"></i> Close</button><p class="money-analysis-inline-loading">Unable to load this plan.</p>';
+            }
+        }
+    };
+    window.addEventListener('money:collapse-goal', () => { if (goalCard.classList.contains('is-expanded')) collapseGoalCard(); });
+    goalCard.addEventListener('change', (event) => {
+        if (event.target.matches('[data-money-weekly-plan]')) syncWeeklyPlanFields(goalCard);
+    });
+    goalCard.addEventListener('click', async (event) => {
+        if (event.target.closest('[data-money-goal-collapse]')) { collapseGoalCard(); return; }
+        const goalTab = event.target.closest('[data-money-goal-tab]');
+        if (goalCard.classList.contains('is-expanded') && goalTab) { event.preventDefault(); setGoalTab(goalTab.dataset.moneyGoalTab); return; }
+        const goalSelector = event.target.closest('[data-money-goal-select]');
+        if (goalCard.classList.contains('is-expanded') && goalSelector) {
+            event.preventDefault();
+            const selectedTab = goalSelector.closest('[data-money-goal-panel]')?.dataset.moneyGoalPanel;
+            await loadGoalTemplate(goalSelector.dataset.moneyGoalSelect, true);
+            if (selectedTab) setGoalTab(selectedTab);
+            goalCard.querySelector('.money-goal-selected-detail')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+            return;
+        }
+        if (goalCard.classList.contains('is-expanded')) return;
+        event.preventDefault();
+        window.dispatchEvent(new Event('money:collapse-analysis')); window.dispatchEvent(new Event('money:collapse-spending')); closeMoneyFilterDrawer();
+        goalCard.before(goalPlaceholder); goalStage.append(goalCard); goalCard.classList.add('is-expanded'); goalCard.setAttribute('aria-expanded', 'true'); goalCard.removeAttribute('role'); goalCard.removeAttribute('tabindex');
+        goalStage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        goalCard.innerHTML = '<button class="money-analysis-inline-close" type="button" data-money-goal-collapse><i class="bi bi-x-lg" aria-hidden="true"></i> Close</button><p class="money-analysis-inline-loading">Loading savings goal…</p>';
+        try {
+            const response = await fetch(goalCard.dataset.moneyGoalUrl, { credentials: 'same-origin' });
+            const documentResponse = new DOMParser().parseFromString(await response.text(), 'text/html');
+            const template = documentResponse.querySelector('#money-goal-template');
+            if (!response.ok || !template) throw new Error('Unable to load goal');
+            goalCard.innerHTML = '<button class="money-analysis-inline-close" type="button" data-money-goal-collapse><i class="bi bi-x-lg" aria-hidden="true"></i> Close</button>' + template.innerHTML;
+            syncWeeklyPlanFields(goalCard);
+        } catch (error) { goalCard.innerHTML = '<button class="money-analysis-inline-close" type="button" data-money-goal-collapse><i class="bi bi-x-lg" aria-hidden="true"></i> Close</button><p class="money-analysis-inline-loading">Unable to load this goal.</p>'; }
+    });
+    goalCard.addEventListener('keydown', (event) => { if ((event.key === 'Enter' || event.key === ' ') && !goalCard.classList.contains('is-expanded')) { event.preventDefault(); goalCard.click(); } });
+    if (new URLSearchParams(window.location.search).get('goal_open') === '1') window.requestAnimationFrame(() => goalCard.click());
 }
 
 const spendingCard = document.querySelector('[data-money-spending-expand]');
@@ -681,6 +804,7 @@ if (spendingCard && spendingStage) {
 
         event.preventDefault();
         window.dispatchEvent(new Event('money:collapse-analysis'));
+        window.dispatchEvent(new Event('money:collapse-goal'));
         closeMoneyFilterDrawer();
         spendingCard.before(spendingPlaceholder);
         spendingStage.append(spendingCard);
