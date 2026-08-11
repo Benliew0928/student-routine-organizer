@@ -188,6 +188,15 @@ function moneySavingsContributions(mysqli $connection, int $goalId, int $userId)
     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
+function moneySavingsGoalRecordedAmount(mysqli $connection, int $goalId, int $userId): float
+{
+    $stmt = $connection->prepare('SELECT COALESCE(SUM(amount), 0) AS saved_amount FROM money_savings_contributions WHERE goal_id = ? AND user_id = ?');
+    $stmt->bind_param('ii', $goalId, $userId);
+    $stmt->execute();
+    $record = $stmt->get_result()->fetch_assoc();
+    return (float) ($record['saved_amount'] ?? 0);
+}
+
 function moneySavingsGoalById(mysqli $connection, int $goalId, int $userId): ?array
 {
     $stmt = $connection->prepare('SELECT goal_id, user_id, goal_name, target_amount, target_date, weekly_amount, auto_save_enabled, reminders_enabled, status, created_at, completed_at FROM money_savings_goals WHERE goal_id = ? AND user_id = ? LIMIT 1');
@@ -860,11 +869,14 @@ function renderMoneyStyles(): void
         }
         .status-pill {
             border-radius: 999px;
+            box-sizing: border-box;
             display: inline-block;
             font-size: 12px;
             font-weight: 800;
             padding: 4px 12px;
+            text-align: center;
             text-transform: capitalize;
+            width: 77px;
         }
         .money-table {
             border-radius: 16px;
@@ -900,7 +912,7 @@ function renderMoneyStyles(): void
             box-shadow: 0 10px 30px rgba(217, 130, 43, 0.08);
             padding: 32px 36px;
         }
-        .money-workspace { display: grid; gap: 22px; grid-template-columns: minmax(0, 1.85fr) minmax(300px, .85fr); margin-top: 22px; }
+        .money-workspace { display: grid; gap: 22px; grid-template-columns: minmax(0, 1.7fr) minmax(320px, .9fr); margin-top: 22px; }
         .money-transaction-column { min-width: 0; }
         .money-insights-column { align-content: start; display: grid; gap: 16px; }
         .money-insight-card { background: #fffdfa; border: 1px solid #f0c590; border-radius: 18px; box-shadow: 0 12px 28px rgba(138, 72, 20, .08); overflow: hidden; padding: 20px; }
@@ -1106,7 +1118,7 @@ function renderMoneyStyles(): void
         .money-goal-activity > div { align-items: center; border-bottom: 1px solid #f0e1d3; display: grid; gap: 10px; grid-template-columns: 30px 1fr auto; padding: 10px 0; }.money-goal-activity > div:last-child { border-bottom: 0; }.money-goal-activity span { align-items: center; background: #fff0df; border-radius: 50%; color: #e9540c; display: inline-flex; height: 30px; justify-content: center; width: 30px; }.money-goal-activity p { margin: 0; }.money-goal-activity p b, .money-goal-activity p small { display: block; }.money-goal-activity p b { font-size: 11px; }.money-goal-activity p small { color: #95755e; font-size: 10px; margin-top: 2px; }.money-goal-activity strong { color: #14836f; font-size: 11px; }.money-goal-empty { color: #80654d; font-size: 12px; }.money-goal-create, .money-goal-smart-plan { margin-top: 16px; }.money-goal-create form { grid-template-columns: repeat(3, 1fr) auto; align-items: end; }.money-goal-smart-plan { background: #eff8e9; border: 1px solid #d5eaca; border-radius: 14px; padding: 18px; }.money-goal-smart-plan form { align-items: center; display: grid; gap: 13px; grid-template-columns: minmax(130px, .8fr) 1fr 1fr auto; }.money-goal-check { align-items: center; display: flex; gap: 7px; }.money-goal-check input { margin: 0; width: auto; }.money-goal-pace { color: #2d7c3c; font-size: 11px; font-weight: 800; margin: 12px 0 0; }
         .money-goal-detail form { align-items: end; }.money-goal-detail-grid form { grid-template-columns: 1fr 1fr; }.money-goal-detail-grid form label:first-of-type { grid-column: 1 / -1; }.money-goal-detail-grid form button { grid-column: 1 / -1; }.money-goal-status, .money-goal-activity-section { background: #fff; border: 1px solid #efd9c4; border-radius: 14px; margin-top: 16px; padding: 18px; }.money-goal-status p { color: #80654d; font-size: 12px; margin: 0 0 12px; }.money-goal-status form { display: flex; flex-wrap: wrap; gap: 9px; }.money-goal-status button { background: #fff6e9; border: 1px solid #efbd82; border-radius: 9px; color: #95470e; cursor: pointer; font: 800 11px Arial, sans-serif; min-height: 34px; padding: 0 12px; }.money-goal-status button[value="completed"] { background: #eff8e9; border-color: #cde7c4; color: #277337; }.money-goal-status button[value="archived"], .money-goal-delete { background: #fff0ed; border-color: #f0c7bd; color: #a23820; }.money-goal-activity details { border-bottom: 1px solid #f0e1d3; }.money-goal-activity details:last-child { border-bottom: 0; }.money-goal-activity summary { align-items: center; cursor: pointer; display: grid; gap: 10px; grid-template-columns: 30px 1fr auto; list-style: none; padding: 10px 0; }.money-goal-activity summary::-webkit-details-marker { display: none; }.money-goal-record-edit { border-top: 1px dashed #edcaa7; padding: 12px 0 14px 40px; }.money-goal-record-edit form { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }.money-goal-record-edit form label:first-of-type { grid-column: 1 / -1; }.money-goal-record-edit form button { grid-column: auto; }.money-goal-record-edit form + form { display: inline; }.money-goal-record-edit .money-goal-delete { margin-top: 8px; min-height: 32px; }.money-goal-create form { grid-template-columns: repeat(3, minmax(0, 1fr)); }.money-goal-create form button { grid-column: 1 / -1; }
         .money-goal-milestones { background: #fff; border: 1px solid #efd9c4; border-radius: 14px; margin-top: 16px; padding: 18px; }.money-goal-milestones h3 { margin-bottom: 14px; }.money-goal-milestones > div { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)); }.money-goal-milestones span { border-top: 3px solid #f1c88f; color: #977255; font-size: 10px; font-weight: 700; padding-top: 8px; }.money-goal-milestones span b { display: block; font-size: 12px; margin-bottom: 3px; }.money-goal-milestones span.is-reached { border-color: #e9540c; color: #5d351b; }
-        .money-goal-plans-heading { align-items: end; display: flex; justify-content: space-between; }.money-goal-plans-heading > span { background: #fff0df; border-radius: 999px; color: #a94b0d; font: 800 11px Arial, sans-serif; padding: 8px 11px; white-space: nowrap; }.money-goal-plans-heading small { color: #80654d; display: block; font: 600 12px/1.45 Arial, sans-serif; margin-top: 9px; max-width: 620px; }.money-goal-overview { background: #fff; border: 1px solid #efd9c4; border-radius: 16px; padding: 18px; }.money-goal-tabs { border-bottom: 1px solid #f0dfca; display: flex; gap: 8px; margin-bottom: 16px; }.money-goal-tabs button { background: transparent; border: 0; border-bottom: 3px solid transparent; color: #8a674d; cursor: pointer; font: 800 12px Arial, sans-serif; padding: 8px 10px 10px; }.money-goal-tabs button b { background: #f6e7d5; border-radius: 999px; font-size: 10px; margin-left: 4px; padding: 3px 6px; }.money-goal-tabs button.is-selected { border-color: #e9540c; color: #a84509; }.money-goal-tabs button.is-selected b { background: #e9540c; color: #fff; }.money-goal-plan-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }.money-goal-plan-card { background: #fffaf3; border: 1px solid #efd9c4; border-radius: 13px; display: grid; gap: 11px; grid-template-columns: minmax(0, 1fr) auto; padding: 15px; }.money-goal-plan-card.is-current { border-color: #e97829; box-shadow: 0 0 0 3px rgba(233, 84, 12, .09); }.money-goal-plan-card.is-past { background: #fcfbf9; }.money-goal-plan-card h3 { color: #43230c; font-size: 17px; margin: 8px 0 4px; }.money-goal-plan-card p { color: #80654d; font-size: 11px; font-weight: 700; margin: 0; }.money-goal-plan-card > strong { color: #e9540c; font-family: Georgia, "Times New Roman", serif; font-size: 25px; font-weight: 400; }.money-goal-plan-card > i { background: #f2d1a4; border-radius: 999px; grid-column: 1 / -1; height: 7px; overflow: hidden; }.money-goal-plan-card > i b { background: linear-gradient(90deg, #e9540c, #ff9b4b); display: block; height: 100%; }.money-goal-plan-card footer { align-items: center; color: #8c6a51; display: flex; font: 700 10px Arial, sans-serif; gap: 9px; grid-column: 1 / -1; justify-content: space-between; }.money-goal-plan-card footer button { background: #fff; border: 1px solid #edb874; border-radius: 7px; color: #a54a0d; cursor: pointer; font: 800 10px Arial, sans-serif; padding: 6px 8px; }.money-goal-status-chip { background: #eff8e9; border: 1px solid #cce7c3; border-radius: 999px; color: #267238; display: inline-flex; font: 800 9px Arial, sans-serif; padding: 4px 7px; text-transform: uppercase; }.money-goal-status-chip.is-paused { background: #fff6dd; border-color: #f0d48c; color: #9a680a; }.money-goal-status-chip.is-completed { background: #eaf7ef; border-color: #c2e5cf; color: #277337; }.money-goal-status-chip.is-archived { background: #f4f1ed; border-color: #ded4c9; color: #7a6859; }.money-goal-selected-detail { border-top: 1px dashed #e4bea0; margin-top: 24px; padding-top: 24px; scroll-margin-top: 82px; }.money-goal-selected-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 14px; }.money-goal-selected-heading p { color: #d95a08; font: 800 10px Arial, sans-serif; letter-spacing: .09em; margin: 0 0 4px; text-transform: uppercase; }.money-goal-selected-heading h3 { color: #3b2000; font-family: Georgia, "Times New Roman", serif; font-size: 26px; margin: 0; }.money-goal-create > p { color: #80654d; font-size: 12px; margin: -6px 0 15px; }
+        .money-goal-plans-heading { align-items: end; display: flex; justify-content: space-between; }.money-goal-plans-heading > span { background: #fff0df; border-radius: 999px; color: #a94b0d; font: 800 11px Arial, sans-serif; padding: 8px 11px; white-space: nowrap; }.money-goal-plans-heading small { color: #80654d; display: block; font: 600 12px/1.45 Arial, sans-serif; margin-top: 9px; max-width: 620px; }.money-goal-overview { background: #fff; border: 1px solid #efd9c4; border-radius: 16px; padding: 18px; }.money-goal-tabs { border-bottom: 1px solid #f0dfca; display: flex; gap: 8px; margin-bottom: 16px; }.money-goal-tabs button { background: transparent; border: 0; border-bottom: 3px solid transparent; color: #8a674d; cursor: pointer; font: 800 12px Arial, sans-serif; padding: 8px 10px 10px; }.money-goal-tabs button b { background: #f6e7d5; border-radius: 999px; font-size: 10px; margin-left: 4px; padding: 3px 6px; }.money-goal-tabs button.is-selected { border-color: #e9540c; color: #a84509; }.money-goal-tabs button.is-selected b { background: #e9540c; color: #fff; }.money-goal-plan-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }.money-goal-plan-card { background: #fffaf3; border: 1px solid #efd9c4; border-radius: 13px; display: grid; gap: 11px; grid-template-columns: minmax(0, 1fr) auto; padding: 15px; }.money-goal-plan-card.is-current { border-color: #e97829; box-shadow: 0 0 0 3px rgba(233, 84, 12, .09); }.money-goal-plan-card.is-past { background: #fcfbf9; }.money-goal-plan-card.is-selectable { cursor: pointer; transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }.money-goal-plan-card.is-selectable:hover { border-color: #e97829; box-shadow: 0 6px 16px rgba(126, 73, 24, .11); transform: translateY(-1px); }.money-goal-plan-card.is-selectable:focus-visible { box-shadow: 0 0 0 3px rgba(233, 84, 12, .2); outline: 0; }.money-goal-plan-card h3 { color: #43230c; font-size: 17px; margin: 8px 0 4px; }.money-goal-plan-card p { color: #80654d; font-size: 11px; font-weight: 700; margin: 0; }.money-goal-plan-card > strong { color: #e9540c; font-family: Georgia, "Times New Roman", serif; font-size: 25px; font-weight: 400; }.money-goal-plan-card > i { background: #f2d1a4; border-radius: 999px; grid-column: 1 / -1; height: 7px; overflow: hidden; }.money-goal-plan-card > i b { background: linear-gradient(90deg, #e9540c, #ff9b4b); display: block; height: 100%; }.money-goal-plan-card footer { align-items: center; color: #8c6a51; display: flex; font: 700 10px Arial, sans-serif; gap: 9px; grid-column: 1 / -1; justify-content: space-between; }.money-goal-plan-card footer button { background: #fff; border: 1px solid #edb874; border-radius: 7px; color: #a54a0d; cursor: pointer; font: 800 10px Arial, sans-serif; padding: 6px 8px; }.money-goal-status-chip { background: #eff8e9; border: 1px solid #cce7c3; border-radius: 999px; color: #267238; display: inline-flex; font: 800 9px Arial, sans-serif; padding: 4px 7px; text-transform: uppercase; }.money-goal-status-chip.is-paused { background: #fff6dd; border-color: #f0d48c; color: #9a680a; }.money-goal-status-chip.is-completed { background: #eaf7ef; border-color: #c2e5cf; color: #277337; }.money-goal-status-chip.is-archived { background: #f4f1ed; border-color: #ded4c9; color: #7a6859; }.money-goal-selected-detail { border-top: 1px dashed #e4bea0; margin-top: 24px; padding-top: 24px; scroll-margin-top: 82px; }.money-goal-selected-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 14px; }.money-goal-selected-heading p { color: #d95a08; font: 800 10px Arial, sans-serif; letter-spacing: .09em; margin: 0 0 4px; text-transform: uppercase; }.money-goal-selected-heading h3 { color: #3b2000; font-family: Georgia, "Times New Roman", serif; font-size: 26px; margin: 0; }.money-goal-create > p { color: #80654d; font-size: 12px; margin: -6px 0 15px; }
         .money-goal-reminder { align-items: center; background: #eff8e9; border: 1px solid #d5eaca; border-radius: 12px; color: #2d7c3c; display: flex; font-size: 11px; font-weight: 800; gap: 9px; margin: 16px 0 0; padding: 12px 14px; }
         .money-table-actions { align-items: center; flex-wrap: nowrap; }
         .money-action-icon { align-items: center; background: #fff3e6; border: 1px solid #e6aa78; border-radius: 9px; color: #8f3508; display: inline-flex; height: 32px; justify-content: center; text-decoration: none; transition: 160ms ease; width: 32px; }
@@ -1139,6 +1151,7 @@ function renderMoneyStyles(): void
         .money-transaction-column .money-table { min-width: 0; table-layout: fixed; width: 100%; }
         .money-transaction-column .money-table th,
         .money-transaction-column .money-table td { white-space: nowrap; }
+        .money-transaction-column .money-table tbody td { vertical-align: middle; }
         .money-transaction-column .money-table th:first-child,
         .money-transaction-column .money-table td:first-child { width: 112px; }
         .money-transaction-column .money-table th:nth-child(2),
@@ -1151,12 +1164,137 @@ function renderMoneyStyles(): void
         .money-transaction-column .money-table td:nth-child(5) { width: 15%; }
         .money-transaction-column .money-table th:last-child,
         .money-transaction-column .money-table td:last-child { width: 76px; }
-        .money-transaction-column .money-table td:nth-child(2) > span { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+        .money-transaction-column .money-table td:nth-child(2) { font-size: 11px; line-height: 1.35; vertical-align: middle; white-space: normal; }
+        .money-transaction-column .money-table td:nth-child(2) > span { -webkit-box-orient: vertical; -webkit-line-clamp: 2; display: -webkit-box; max-width: 100%; overflow: hidden; overflow-wrap: anywhere; }
         @media (max-width: 980px) { .money-workspace { grid-template-columns: 1fr; } .money-insights-column { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         @media (max-width: 640px) { .money-insights-column { grid-template-columns: 1fr; } .money-spending-detail-heading { display: block; margin-right: 54px; } .money-spending-period { margin-top: 10px; } .money-spending-stat-grid, .money-spending-detail-grid { grid-template-columns: 1fr; } .money-spending-chart-panel svg { height: 160px; } .money-analysis-launch { padding: 14px; } .money-mini-chart-grid { gap: 10px; } .money-mini-chart { padding: 12px; } .money-flow-data { gap: 6px; grid-template-columns: minmax(0, 1fr) 58px; } .money-flow-data svg { height: 58px; width: 58px; } .money-net-balance { gap: 9px; padding: 11px; } .money-net-balance strong { font-size: 17px; padding-left: 10px; } .money-analysis-launch.is-expanded { padding: 62px 16px 16px; } .money-analysis-inline-close { right: 14px; top: 14px; } .money-analysis-launch.is-expanded .money-theme-hero { padding: 22px; } .money-analysis-launch.is-expanded .money-analysis-grid { grid-template-columns: 1fr; } .money-analysis-launch.is-expanded .money-analysis-card + .money-analysis-card { border-left: 0; border-top: 1px solid rgba(240, 197, 144, .65); } .saving-goal-main strong { font-size: 38px; } }
         @media (max-width: 640px) { .money-goal-detail-grid { grid-template-columns: 1fr; } .money-goal-detail-grid form, .money-goal-create form { grid-template-columns: 1fr; } .money-goal-detail-grid form label:first-of-type, .money-goal-detail-grid form button { grid-column: auto; } .money-goal-hero { padding: 18px; } .money-goal-record-edit { padding-left: 0; } .money-goal-smart-plan form { grid-template-columns: 1fr; } }
         @media (max-width: 640px) { .money-goal-plans-heading { align-items: start; display: block; } .money-goal-plans-heading > span { display: inline-flex; margin-top: 12px; } .money-goal-plan-grid { grid-template-columns: 1fr; } .money-goal-tabs { overflow-x: auto; } .money-goal-create .money-goal-weekly-amount, .money-goal-create .money-goal-plan-options { grid-column: auto; } .money-goal-plan-options { flex-wrap: wrap; white-space: normal; } .money-goal-detail-grid .money-goal-plan-options { justify-content: flex-start; } }
         @media (max-width: 480px) { .money-goal-milestones > div { grid-template-columns: 1fr 1fr; } .money-goal-activity summary { grid-template-columns: 30px minmax(0, 1fr); } .money-goal-activity summary > strong { grid-column: 2; } }
-        .money-goal-plan-options { align-items: center; align-self: end; display: flex; gap: 15px; white-space: nowrap; }.money-goal-weekly-amount { transition: opacity 160ms ease; }.money-goal-weekly-amount small { color: #95755e; display: block; font-size: 10px; font-weight: 600; margin-top: 5px; }.money-goal-weekly-amount.is-disabled { opacity: .48; }.money-goal-weekly-amount input:disabled { background: #f6f0e8; cursor: not-allowed; }.money-goal-create .money-goal-weekly-amount { grid-column: span 2; }.money-goal-create .money-goal-plan-options { grid-column: 3; }.money-goal-detail-grid > section:nth-child(2) form { grid-template-columns: repeat(2, minmax(0, 1fr)); }.money-goal-detail-grid > section:nth-child(2) .money-goal-plan-options { grid-column: auto; justify-content: flex-start; } @media (max-width: 640px) { .money-goal-detail-grid > section:nth-child(2) form { grid-template-columns: 1fr; } .money-goal-detail-grid > section:nth-child(2) .money-goal-plan-options { grid-column: auto; flex-wrap: wrap; white-space: normal; } }
+        .money-goal-plan-options { align-items: center; align-self: end; display: flex; gap: 15px; white-space: nowrap; }.money-goal-weekly-amount { transition: opacity 160ms ease; }.money-goal-weekly-amount small { color: #95755e; display: block; font-size: 10px; font-weight: 600; margin-top: 5px; }.money-goal-weekly-amount.is-disabled { opacity: .48; }.money-goal-weekly-amount input:disabled { background: #f6f0e8; cursor: not-allowed; }.money-goal-weekly-amount input[readonly] { background: #eff8e9; color: #24753a; cursor: default; font-weight: 800; }.money-goal-create .money-goal-weekly-amount { grid-column: span 2; }.money-goal-create .money-goal-plan-options { grid-column: 3; }.money-goal-detail-grid > section:nth-child(2) form { grid-template-columns: repeat(2, minmax(0, 1fr)); }.money-goal-detail-grid > section:nth-child(2) .money-goal-plan-options { grid-column: auto; justify-content: flex-start; } @media (max-width: 640px) { .money-goal-detail-grid > section:nth-child(2) form { grid-template-columns: 1fr; } .money-goal-detail-grid > section:nth-child(2) .money-goal-plan-options { grid-column: auto; flex-wrap: wrap; white-space: normal; } }
+        /* Refined editorial-orange skin: presentation only, no markup or behaviour changes. */
+        .money-theme-hero {
+            background: linear-gradient(120deg, #fff9f2 0%, #fff0df 58%, #f5c483 100%);
+            border-color: #e6a55a;
+            box-shadow: 0 18px 38px rgba(164, 80, 17, .14);
+        }
+        .money-theme-hero::before { background: linear-gradient(90deg, #c65115, #ef9b47 52%, #d96118); }
+        .money-theme-hero::after { background: radial-gradient(circle, rgba(197, 84, 18, .17) 1px, transparent 1.4px); opacity: .42; }
+        .money-overview-card {
+            background: rgba(255, 250, 243, .9);
+            border-color: rgba(210, 126, 52, .54);
+            box-shadow: 0 12px 24px rgba(132, 64, 18, .08);
+            justify-self: end;
+            margin-right: 24px;
+        }
+        .money-dash-card { background: linear-gradient(145deg, #fffaf4, #fff0df); border-color: #efd1ae; box-shadow: 0 10px 22px rgba(163, 82, 20, .07); }
+        .money-dash-card-income { background: linear-gradient(145deg, #f7fbf7, #edf5ef); }
+        .money-dash-card-expense { background: linear-gradient(145deg, #fff8f1, #ffe9d2); }
+        .money-dash-card-balance { background: linear-gradient(145deg, #fffaf4, #f7eadc); }
+        .money-transaction-column .exercise-board-header { background: #fff3e6; border-color: #e9a365; }
+        .money-transaction-column .table-panel { background: #fffaf4; border-color: #e9a365; }
+        .money-transaction-column .money-table thead th { background: #a9430d; }
+        .money-transaction-column .money-table tbody tr:nth-child(even) { background: #fff4e8; }
+        .money-insight-card { background: #fffaf3; border-color: #e9b77e; box-shadow: 0 12px 26px rgba(138, 72, 20, .08); }
+        .money-trend-card { background: linear-gradient(145deg, #fffaf3, #ffecd5); border-color: #e8893e; }
+        .money-analysis-launch { background: linear-gradient(145deg, #fffaf4, #fff0df); }
+        .money-mini-chart { background: rgba(255, 252, 247, .86); border-color: #efd6b7; }
+        .money-net-balance { background: #fff4e8; border-color: #edd4b8; }
+        .money-saving-card { background: linear-gradient(145deg, #fff7ea, #ffe8c8); border-color: #ed9a4e; }
+        .money-saving-card::before { border-color: rgba(213, 92, 11, .22); }
+        .money-saving-card::after { background: #ffdfad; }
+        @media (max-width: 760px) { .money-overview-card { justify-self: stretch; margin-right: 0; } }
+
+        /* Dashboard finish matched to the approved warm-orange reference. */
+        .money-theme-hero {
+            background: linear-gradient(112deg, #fffdf9 0%, #fff6ea 58%, #f9d09c 100%);
+            border-color: #eca75e;
+            box-shadow: 0 16px 34px rgba(144, 72, 20, .13);
+        }
+        .money-theme-hero::before { background: #d96a1b; bottom: 0; height: auto; left: 0; right: auto; top: 0; width: 5px; }
+        .money-theme-hero::after {
+            background:
+                radial-gradient(circle, rgba(205, 91, 23, .18) 1px, transparent 1.35px),
+                repeating-radial-gradient(circle at 100% 0, transparent 0 12px, rgba(227, 133, 56, .21) 12px 13px, transparent 13px 17px);
+            background-size: 17px 17px, auto;
+            height: 100%; opacity: .68; width: 39%;
+        }
+        .money-overview-card { background: rgba(255, 250, 243, .96); border-color: #e9bd91; margin-right: 42px; min-width: 220px; }
+        .money-overview-card .summary-label, .money-theme-hero .eyebrow { color: #e84e10; }
+        .money-dash-card { border-color: #efd7bf; box-shadow: 0 10px 21px rgba(138, 75, 26, .06); }
+        .money-dash-card::after {
+            border: 1px solid rgba(222, 145, 77, .25); border-radius: 50%; content: ""; height: 78px;
+            opacity: .75; position: absolute; right: -18px; top: -18px; width: 78px;
+        }
+        .money-dash-card-income { background: linear-gradient(135deg, #fffdf8, #eef6ef); }
+        .money-dash-card-expense { background: linear-gradient(135deg, #fffdf9, #ffead4); }
+        .money-dash-card-balance { background: linear-gradient(135deg, #fffdf9, #fff2e2); }
+        .money-dash-card-income::before { background: #167760; }
+        .money-dash-card-expense::before { background: #e25516; }
+        .money-dash-card-balance::before { background: linear-gradient(90deg, #d56d21, #f2a55b); }
+        .money-summary-art {
+            align-items: center;
+            background: rgba(255, 250, 243, .74);
+            border: 1px solid rgba(222, 145, 77, .55);
+            border-radius: 50%;
+            box-shadow: 0 0 0 6px rgba(255, 245, 232, .5), 0 5px 12px rgba(135, 69, 20, .09);
+            color: #c45112;
+            display: inline-flex;
+            font-size: 31px;
+            height: 64px;
+            justify-content: center;
+            position: absolute;
+            right: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 64px;
+            z-index: 1;
+        }
+        .money-dash-card-income .money-summary-art {
+            background: #edf8f1;
+            border-color: #8fc9a7;
+            box-shadow: 0 0 0 6px rgba(232, 247, 237, .72), 0 5px 12px rgba(31, 112, 72, .1);
+            color: #167760;
+        }
+        .money-dash-card-expense .money-summary-art { color: #e25516; }
+        .money-dash-card-balance .money-summary-art { color: #d16b1d; }
+        @media (max-width: 640px) { .money-summary-art { right: 20px; } }
+
+        /* Keep the warm structure, but make every money-dashboard outline lighter. */
+        .money-theme-hero,
+        .money-overview-card,
+        .money-dash-card,
+        .money-transaction-column .exercise-board-header,
+        .money-transaction-column .table-panel,
+        .money-transaction-column .money-table,
+        .money-insight-card,
+        .money-trend-card,
+        .money-mini-chart,
+        .money-net-balance,
+        .money-saving-card { border-color: #f2ddc6; }
+        .money-overview-card,
+        .money-dash-card,
+        .money-insight-card { border-width: 1px; }
+        .money-mini-chart,
+        .money-net-balance { border-color: #f5e5d4; }
+        .money-transaction-column .exercise-board-header { background: linear-gradient(90deg, #fffaf3, #fff0df); }
+        .money-transaction-column .table-panel { background: #fffaf4; }
+        .money-transaction-column .money-table { border-color: #efc89d; }
+        .money-transaction-column .money-table thead th { background: linear-gradient(90deg, #a8420c, #c4510d); color: #fffaf4; }
+        .money-transaction-column .money-table tbody tr { border-color: #f1dbc5; }
+        .money-transaction-column .money-table tbody tr:nth-child(even) { background: #fff6ec; }
+        .money-trend-card { background: linear-gradient(135deg, #fffdf9, #fff1df); overflow: hidden; position: relative; }
+        .money-trend-card::after {
+            background: repeating-radial-gradient(circle at 100% 0, transparent 0 10px, rgba(221, 134, 60, .15) 10px 11px, transparent 11px 15px);
+            content: ""; height: 105px; pointer-events: none; position: absolute; right: 0; top: 0; width: 39%;
+        }
+        .money-trend-card > * { position: relative; z-index: 1; }
+        .money-analysis-launch { background: linear-gradient(135deg, #fffdf9, #fff5e9); }
+        .money-mini-chart { background: #fffdf9; }
+        .money-saving-card { background: linear-gradient(135deg, #fff9ef, #ffedcf); }
+        .money-saving-card::before { border-style: solid; opacity: .55; }
+        .money-saving-card::after { background: #fee3b9; opacity: .62; }
+        .saving-icon { background: #e75b0c; box-shadow: 0 7px 14px rgba(181, 68, 8, .2); }
+        @media (max-width: 760px) { .money-overview-card { margin-right: 0; } }
     </style>';
 }

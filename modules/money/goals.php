@@ -25,23 +25,59 @@ function moneyGoalDateFromRequest(string $value): ?string
     return $date !== '' && moneyIsValidDate($date) ? $date : null;
 }
 
+function moneyGoalWeeksUntilTarget(?string $targetDate): ?int
+{
+    if (!$targetDate) {
+        return null;
+    }
+
+    try {
+        $daysUntilTarget = (int) (new DateTimeImmutable('today'))->diff(new DateTimeImmutable($targetDate))->format('%r%a');
+    } catch (Exception $exception) {
+        return null;
+    }
+
+    return $daysUntilTarget < 0 ? null : max(1, (int) ceil($daysUntilTarget / 7));
+}
+
+function moneyGoalAutomaticWeeklyAmount(float $target, float $saved, ?string $targetDate): ?float
+{
+    $weeksUntilTarget = moneyGoalWeeksUntilTarget($targetDate);
+    if ($weeksUntilTarget === null) {
+        return null;
+    }
+
+    return round(max(0, $target - $saved) / $weeksUntilTarget, 2);
+}
+
+function moneyGoalRefreshWeeklyAmount(mysqli $connection, int $goalId, int $userId): void
+{
+    $goal = moneySavingsGoalById($connection, $goalId, $userId);
+    if (!$goal || !(int) $goal['auto_save_enabled']) {
+        return;
+    }
+
+    $savedAmount = moneySavingsGoalRecordedAmount($connection, $goalId, $userId);
+    $weeklyAmount = moneyGoalAutomaticWeeklyAmount((float) $goal['target_amount'], $savedAmount, $goal['target_date']);
+    if ($weeklyAmount === null) {
+        return;
+    }
+
+    $stmt = $connection->prepare('UPDATE money_savings_goals SET weekly_amount = ? WHERE goal_id = ? AND user_id = ?');
+    $stmt->bind_param('dii', $weeklyAmount, $goalId, $userId);
+    $stmt->execute();
+}
+
 function moneyGoalPlanData(array $goal): array
 {
     $target = (float) $goal['target_amount'];
     $saved = (float) $goal['saved_amount'];
     $remaining = max(0, $target - $saved);
-    $weeklyAmount = (float) $goal['weekly_amount'];
-    $weeksToGoal = $weeklyAmount > 0 ? (int) ceil($remaining / $weeklyAmount) : null;
-    $weeksUntilTarget = null;
-    $recommendedWeekly = null;
-
-    if (!empty($goal['target_date'])) {
-        $daysUntilTarget = (int) (new DateTimeImmutable('today'))->diff(new DateTimeImmutable($goal['target_date']))->format('%r%a');
-        if ($daysUntilTarget >= 0) {
-            $weeksUntilTarget = max(1, (int) ceil($daysUntilTarget / 7));
-            $recommendedWeekly = $remaining / $weeksUntilTarget;
-        }
-    }
+    $weeksUntilTarget = moneyGoalWeeksUntilTarget($goal['target_date']);
+    $automaticWeeklyAmount = (int) $goal['auto_save_enabled'] ? moneyGoalAutomaticWeeklyAmount($target, $saved, $goal['target_date']) : null;
+    $weeklyAmount = $automaticWeeklyAmount ?? (float) $goal['weekly_amount'];
+    $weeksToGoal = (int) $goal['auto_save_enabled'] ? $weeksUntilTarget : ($weeklyAmount > 0 ? (int) ceil($remaining / $weeklyAmount) : null);
+    $recommendedWeekly = $automaticWeeklyAmount;
 
     return [
         'target' => $target,
@@ -64,10 +100,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $target = (float) ($_POST['target_amount'] ?? 0);
         $date = moneyGoalDateFromRequest((string) ($_POST['target_date'] ?? ''));
         $planEnabled = isset($_POST['weekly_plan_enabled']) ? 1 : 0;
-        $weeklyAmount = $planEnabled ? max(0, (float) ($_POST['weekly_amount'] ?? 0)) : 0.00;
+        $weeklyAmount = $planEnabled ? moneyGoalAutomaticWeeklyAmount($target, 0, $date) : 0.00;
         $reminders = isset($_POST['reminders_enabled']) ? 1 : 0;
 
-        if ($name !== '' && mb_strlen($name) <= 120 && $target > 0 && $target <= 99999999.99 && $weeklyAmount <= 99999999.99 && (!$planEnabled || $weeklyAmount > 0)) {
+        if ($name !== '' && mb_strlen($name) <= 120 && $target > 0 && $target <= 99999999.99 && (!$planEnabled || $weeklyAmount !== null)) {
             $stmt = $connection->prepare('INSERT INTO money_savings_goals (user_id, goal_name, target_amount, target_date, weekly_amount, auto_save_enabled, reminders_enabled) VALUES (?, ?, ?, ?, ?, ?, ?)');
             $stmt->bind_param('isdsdii', $userId, $name, $target, $date, $weeklyAmount, $planEnabled, $reminders);
             $stmt->execute();
@@ -80,8 +116,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $name = mb_substr($sourceGoal['goal_name'] . ' (new plan)', 0, 120);
             $target = (float) $sourceGoal['target_amount'];
             $date = null;
-            $planEnabled = (int) $sourceGoal['auto_save_enabled'];
-            $weeklyAmount = $planEnabled ? (float) $sourceGoal['weekly_amount'] : 0.00;
+            $planEnabled = 0;
+            $weeklyAmount = 0.00;
             $reminders = (int) $sourceGoal['reminders_enabled'];
             $stmt = $connection->prepare('INSERT INTO money_savings_goals (user_id, goal_name, target_amount, target_date, weekly_amount, auto_save_enabled, reminders_enabled) VALUES (?, ?, ?, ?, ?, ?, ?)');
             $stmt->bind_param('isdsdii', $userId, $name, $target, $date, $weeklyAmount, $planEnabled, $reminders);
@@ -95,10 +131,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $target = (float) ($_POST['target_amount'] ?? 0);
         $date = moneyGoalDateFromRequest((string) ($_POST['target_date'] ?? ''));
         $planEnabled = isset($_POST['weekly_plan_enabled']) ? 1 : 0;
-        $weeklyAmount = $planEnabled ? max(0, (float) ($_POST['weekly_amount'] ?? 0)) : 0.00;
+        $savedAmount = $goal ? moneySavingsGoalRecordedAmount($connection, $goalId, $userId) : 0.00;
+        $weeklyAmount = $planEnabled ? moneyGoalAutomaticWeeklyAmount($target, $savedAmount, $date) : 0.00;
         $reminders = isset($_POST['reminders_enabled']) ? 1 : 0;
 
-        if ($goal && $goal['status'] === 'active' && $name !== '' && mb_strlen($name) <= 120 && $target > 0 && $target <= 99999999.99 && $weeklyAmount <= 99999999.99 && (!$planEnabled || $weeklyAmount > 0)) {
+        if ($goal && $goal['status'] === 'active' && $name !== '' && mb_strlen($name) <= 120 && $target > 0 && $target <= 99999999.99 && (!$planEnabled || $weeklyAmount !== null)) {
             $stmt = $connection->prepare('UPDATE money_savings_goals SET goal_name = ?, target_amount = ?, target_date = ?, weekly_amount = ?, auto_save_enabled = ?, reminders_enabled = ? WHERE goal_id = ? AND user_id = ?');
             $stmt->bind_param('sdsdiiii', $name, $target, $date, $weeklyAmount, $planEnabled, $reminders, $goalId, $userId);
             $stmt->execute();
@@ -118,7 +155,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $stmt = $connection->prepare("UPDATE money_savings_goals SET status = ?, completed_at = {$completedAt} WHERE goal_id = ? AND user_id = ?");
             $stmt->bind_param('sii', $status, $goalId, $userId);
             $stmt->execute();
-            $redirectGoalId = $goalId;
+            $redirectGoalId = $status === 'archived' ? 0 : $goalId;
         }
     } elseif ($action === 'contribute') {
         $goalId = (int) ($_POST['goal_id'] ?? 0);
@@ -131,6 +168,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $stmt = $connection->prepare('INSERT INTO money_savings_contributions (goal_id, user_id, amount, note, contribution_date) VALUES (?, ?, ?, ?, ?)');
             $stmt->bind_param('iidss', $goalId, $userId, $amount, $note, $date);
             $stmt->execute();
+            moneyGoalRefreshWeeklyAmount($connection, $goalId, $userId);
             $redirectGoalId = $goalId;
         }
     } elseif ($action === 'update_contribution') {
@@ -145,6 +183,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $stmt = $connection->prepare('UPDATE money_savings_contributions SET amount = ?, note = ?, contribution_date = ? WHERE contribution_id = ? AND user_id = ?');
             $stmt->bind_param('dssii', $amount, $note, $date, $contributionId, $userId);
             $stmt->execute();
+            moneyGoalRefreshWeeklyAmount($connection, (int) $goal['goal_id'], $userId);
             $redirectGoalId = (int) $goal['goal_id'];
         }
     } elseif ($action === 'delete_contribution') {
@@ -156,6 +195,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $stmt = $connection->prepare('DELETE FROM money_savings_contributions WHERE contribution_id = ? AND user_id = ?');
             $stmt->bind_param('ii', $contributionId, $userId);
             $stmt->execute();
+            moneyGoalRefreshWeeklyAmount($connection, (int) $goal['goal_id'], $userId);
             $redirectGoalId = (int) $goal['goal_id'];
         }
     }
@@ -165,10 +205,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
 $allGoals = moneySavingsGoalsForUser($connection, $userId);
 $currentGoals = array_values(array_filter($allGoals, static fn (array $goal): bool => in_array($goal['status'], ['active', 'paused'], true)));
-$pastGoals = array_values(array_filter($allGoals, static fn (array $goal): bool => in_array($goal['status'], ['completed', 'archived'], true)));
+$pastGoals = array_values(array_filter($allGoals, static fn (array $goal): bool => $goal['status'] === 'completed'));
 $selectedGoalId = (int) ($_GET['goal_id'] ?? 0);
 $goal = null;
-foreach ($allGoals as $candidateGoal) {
+foreach (array_merge($currentGoals, $pastGoals) as $candidateGoal) {
     if ((int) $candidateGoal['goal_id'] === $selectedGoalId) {
         $goal = $candidateGoal;
         break;
@@ -178,7 +218,7 @@ $goal ??= $currentGoals[0] ?? $pastGoals[0] ?? null;
 $contributions = $goal ? moneySavingsContributions($connection, (int) $goal['goal_id'], $userId) : [];
 $goalData = $goal ? moneyGoalPlanData($goal) : null;
 $isActive = $goal && $goal['status'] === 'active';
-$selectedIsPast = $goal && in_array($goal['status'], ['completed', 'archived'], true);
+$selectedIsPast = $goal && $goal['status'] === 'completed';
 ?>
 <template id="money-goal-template">
 <section class="money-goal-detail" aria-label="Savings plans">
@@ -187,10 +227,10 @@ $selectedIsPast = $goal && in_array($goal['status'], ['completed', 'archived'], 
   <section class="money-goal-overview">
     <div class="money-goal-tabs" role="tablist" aria-label="Savings plan groups"><button type="button" class="<?= $selectedIsPast ? '' : 'is-selected'; ?>" data-money-goal-tab="current" role="tab" aria-selected="<?= $selectedIsPast ? 'false' : 'true'; ?>">Current plans <b><?= count($currentGoals); ?></b></button><button type="button" class="<?= $selectedIsPast ? 'is-selected' : ''; ?>" data-money-goal-tab="past" role="tab" aria-selected="<?= $selectedIsPast ? 'true' : 'false'; ?>">Past plans <b><?= count($pastGoals); ?></b></button></div>
     <div class="money-goal-plan-panel" data-money-goal-panel="current" <?= $selectedIsPast ? 'hidden' : ''; ?>>
-      <?php if ($currentGoals): ?><div class="money-goal-plan-grid"><?php foreach ($currentGoals as $plan): ?><?php $planProgress = moneySavingsGoalProgress($plan); ?><article class="money-goal-plan-card <?= $goal && (int) $goal['goal_id'] === (int) $plan['goal_id'] ? 'is-current' : ''; ?>"><div><span class="money-goal-status-chip is-<?= escapeOutput($plan['status']); ?>"><?= escapeOutput(ucfirst($plan['status'])); ?></span><h3><?= escapeOutput($plan['goal_name']); ?></h3><p>RM <?= number_format((float) $plan['saved_amount'], 2); ?> of RM <?= number_format((float) $plan['target_amount'], 2); ?></p></div><strong><?= number_format($planProgress, 1); ?>%</strong><i><b style="width: <?= $planProgress; ?>%"></b></i><footer><span><?= $plan['target_date'] ? 'Target ' . date('d M Y', strtotime($plan['target_date'])) : 'No target date'; ?></span><button type="button" data-money-goal-select="<?= (int) $plan['goal_id']; ?>">View plan</button></footer></article><?php endforeach; ?></div><?php else: ?><p class="money-goal-empty">No current plans yet. Create one below when you are ready.</p><?php endif; ?>
+      <?php if ($currentGoals): ?><div class="money-goal-plan-grid"><?php foreach ($currentGoals as $plan): ?><?php $planProgress = moneySavingsGoalProgress($plan); ?><article class="money-goal-plan-card is-selectable <?= $goal && (int) $goal['goal_id'] === (int) $plan['goal_id'] ? 'is-current' : ''; ?>" role="button" tabindex="0" data-money-goal-select="<?= (int) $plan['goal_id']; ?>" aria-label="Open current plan for <?= escapeOutput($plan['goal_name']); ?>"><div><span class="money-goal-status-chip is-<?= escapeOutput($plan['status']); ?>"><?= escapeOutput(ucfirst($plan['status'])); ?></span><h3><?= escapeOutput($plan['goal_name']); ?></h3><p>RM <?= number_format((float) $plan['saved_amount'], 2); ?> of RM <?= number_format((float) $plan['target_amount'], 2); ?></p></div><strong><?= number_format($planProgress, 1); ?>%</strong><i><b style="width: <?= $planProgress; ?>%"></b></i><footer><span><?= $plan['target_date'] ? 'Target ' . date('d M Y', strtotime($plan['target_date'])) : 'No target date'; ?></span><i class="bi bi-arrow-right" aria-hidden="true"></i></footer></article><?php endforeach; ?></div><?php else: ?><p class="money-goal-empty">No current plans yet. Create one below when you are ready.</p><?php endif; ?>
     </div>
     <div class="money-goal-plan-panel" data-money-goal-panel="past" <?= $selectedIsPast ? '' : 'hidden'; ?>>
-      <?php if ($pastGoals): ?><div class="money-goal-plan-grid"><?php foreach ($pastGoals as $plan): ?><?php $planProgress = moneySavingsGoalProgress($plan); ?><article class="money-goal-plan-card is-past <?= $goal && (int) $goal['goal_id'] === (int) $plan['goal_id'] ? 'is-current' : ''; ?>"><div><span class="money-goal-status-chip is-<?= escapeOutput($plan['status']); ?>"><?= escapeOutput(ucfirst($plan['status'])); ?></span><h3><?= escapeOutput($plan['goal_name']); ?></h3><p>RM <?= number_format((float) $plan['saved_amount'], 2); ?> of RM <?= number_format((float) $plan['target_amount'], 2); ?></p></div><strong><?= number_format($planProgress, 1); ?>%</strong><i><b style="width: <?= $planProgress; ?>%"></b></i><footer><span><?= $plan['completed_at'] ? 'Completed ' . date('d M Y', strtotime($plan['completed_at'])) : 'Archived record'; ?></span><button type="button" data-money-goal-select="<?= (int) $plan['goal_id']; ?>">View record</button></footer></article><?php endforeach; ?></div><?php else: ?><p class="money-goal-empty">Completed and archived plans will appear here.</p><?php endif; ?>
+      <?php if ($pastGoals): ?><div class="money-goal-plan-grid"><?php foreach ($pastGoals as $plan): ?><?php $planProgress = moneySavingsGoalProgress($plan); ?><article class="money-goal-plan-card is-past is-selectable <?= $goal && (int) $goal['goal_id'] === (int) $plan['goal_id'] ? 'is-current' : ''; ?>" role="button" tabindex="0" data-money-goal-select="<?= (int) $plan['goal_id']; ?>" aria-label="Open completed record for <?= escapeOutput($plan['goal_name']); ?>"><div><span class="money-goal-status-chip is-<?= escapeOutput($plan['status']); ?>"><?= escapeOutput(ucfirst($plan['status'])); ?></span><h3><?= escapeOutput($plan['goal_name']); ?></h3><p>RM <?= number_format((float) $plan['saved_amount'], 2); ?> of RM <?= number_format((float) $plan['target_amount'], 2); ?></p></div><strong><?= number_format($planProgress, 1); ?>%</strong><i><b style="width: <?= $planProgress; ?>%"></b></i><footer><span><?= $plan['completed_at'] ? 'Completed ' . date('d M Y', strtotime($plan['completed_at'])) : 'Completed record'; ?></span><i class="bi bi-arrow-right" aria-hidden="true"></i></footer></article><?php endforeach; ?></div><?php else: ?><p class="money-goal-empty">Completed plans will appear here.</p><?php endif; ?>
     </div>
   </section>
 
@@ -203,7 +243,10 @@ $selectedIsPast = $goal && in_array($goal['status'], ['completed', 'archived'], 
       <?php if ($isActive && $goal['reminders_enabled'] && $goal['target_date'] && $goalData['recommended_weekly'] !== null): ?><p class="money-goal-reminder"><i class="bi bi-lightbulb" aria-hidden="true"></i><span>To reach this plan, record about RM <?= number_format($goalData['recommended_weekly'], 2); ?> per week for the next <?= $goalData['weeks_until_target']; ?> week<?= $goalData['weeks_until_target'] === 1 ? '' : 's'; ?>.</span></p><?php endif; ?>
 
       <?php if ($isActive): ?>
-        <div class="money-goal-detail-grid"><section><h3>Record savings</h3><form method="post" action="<?= BASE_URL; ?>/modules/money/goals.php"><input type="hidden" name="goal_action" value="contribute"><input type="hidden" name="goal_id" value="<?= (int) $goal['goal_id']; ?>"><label>Amount<input name="amount" type="number" min="0.01" step="0.01" required placeholder="RM 0.00"></label><label>Note <span>(optional)</span><input name="note" maxlength="255" placeholder="e.g. Saved from freelance work"></label><label>Date<input name="contribution_date" type="date" value="<?= date('Y-m-d'); ?>" required></label><button type="submit">Record savings</button></form></section><section><h3>Plan settings</h3><form method="post" action="<?= BASE_URL; ?>/modules/money/goals.php"><input type="hidden" name="goal_action" value="update"><input type="hidden" name="goal_id" value="<?= (int) $goal['goal_id']; ?>"><label>Plan name<input name="goal_name" maxlength="120" value="<?= escapeOutput($goal['goal_name']); ?>" required></label><label>Target amount<input name="target_amount" type="number" min="0.01" step="0.01" value="<?= number_format($goalData['target'], 2, '.', ''); ?>" required></label><label>Target date<input name="target_date" type="date" value="<?= escapeOutput((string) $goal['target_date']); ?>"></label><label class="money-goal-weekly-amount" data-money-weekly-amount-field>Weekly amount<input name="weekly_amount" data-money-weekly-amount type="number" min="0.01" step="0.01" value="<?= number_format($goalData['weekly_amount'], 2, '.', ''); ?>" <?= $goal['auto_save_enabled'] ? 'required' : 'disabled'; ?>><small>Enable the plan to set a weekly amount.</small></label><div class="money-goal-plan-options"><label class="money-goal-check money-goal-weekly-toggle"><input name="weekly_plan_enabled" type="checkbox" data-money-weekly-plan <?= $goal['auto_save_enabled'] ? 'checked' : ''; ?>> Weekly saving plan</label><label class="money-goal-check"><input name="reminders_enabled" type="checkbox" <?= $goal['reminders_enabled'] ? 'checked' : ''; ?>> Show plan reminders</label></div><button type="submit">Save plan</button></form><?php if ($goalData['weeks_to_goal'] !== null && $goal['auto_save_enabled'] && $goal['target_date']): ?><p class="money-goal-pace">Plan: RM <?= number_format($goalData['weekly_amount'], 2); ?> per week for <?= $goalData['weeks_to_goal']; ?> week<?= $goalData['weeks_to_goal'] === 1 ? '' : 's'; ?>. Records remain manual.</p><?php endif; ?></section></div>
+        <div class="money-goal-detail-grid">
+          <section><h3>Record savings</h3><form method="post" action="<?= BASE_URL; ?>/modules/money/goals.php"><input type="hidden" name="goal_action" value="contribute"><input type="hidden" name="goal_id" value="<?= (int) $goal['goal_id']; ?>"><label>Amount<input name="amount" type="number" min="0.01" step="0.01" required placeholder="RM 0.00"></label><label>Note <span>(optional)</span><input name="note" maxlength="255" placeholder="e.g. Saved from freelance work"></label><label>Date<input name="contribution_date" type="date" value="<?= date('Y-m-d'); ?>" required></label><button type="submit">Record savings</button></form></section>
+          <section><h3>Plan settings</h3><form method="post" action="<?= BASE_URL; ?>/modules/money/goals.php" data-money-weekly-calculator data-money-saved-amount="<?= number_format($goalData['saved'], 2, '.', ''); ?>"><input type="hidden" name="goal_action" value="update"><input type="hidden" name="goal_id" value="<?= (int) $goal['goal_id']; ?>"><label>Plan name<input name="goal_name" maxlength="120" value="<?= escapeOutput($goal['goal_name']); ?>" required></label><label>Target amount<input name="target_amount" data-money-weekly-target type="number" min="0.01" step="0.01" value="<?= number_format($goalData['target'], 2, '.', ''); ?>" required></label><label>Target date<input name="target_date" data-money-weekly-date type="date" value="<?= escapeOutput((string) $goal['target_date']); ?>"></label><label class="money-goal-weekly-amount" data-money-weekly-amount-field>Weekly amount <span>(auto)</span><input name="weekly_amount" data-money-weekly-amount type="number" min="0" step="0.01" value="<?= number_format($goalData['weekly_amount'], 2, '.', ''); ?>" <?= $goal['auto_save_enabled'] && $goalData['recommended_weekly'] !== null ? 'readonly' : 'disabled'; ?>><small data-money-weekly-help><?= $goal['auto_save_enabled'] ? 'Calculated from your target date.' : 'Enable the plan to calculate a weekly amount.'; ?></small></label><div class="money-goal-plan-options"><label class="money-goal-check money-goal-weekly-toggle"><input name="weekly_plan_enabled" type="checkbox" data-money-weekly-plan <?= $goal['auto_save_enabled'] ? 'checked' : ''; ?>> Weekly saving plan</label><label class="money-goal-check"><input name="reminders_enabled" type="checkbox" <?= $goal['reminders_enabled'] ? 'checked' : ''; ?>> Show plan reminders</label></div><button type="submit">Save plan</button></form><?php if ($goalData['weeks_until_target'] !== null && $goal['auto_save_enabled'] && $goalData['recommended_weekly'] !== null): ?><p class="money-goal-pace">Auto plan: RM <?= number_format($goalData['weekly_amount'], 2); ?> per week for the next <?= $goalData['weeks_until_target']; ?> week<?= $goalData['weeks_until_target'] === 1 ? '' : 's'; ?>. Records remain manual.</p><?php endif; ?></section>
+        </div>
         <section class="money-goal-status"><h3>Plan status</h3><form method="post" action="<?= BASE_URL; ?>/modules/money/goals.php"><input type="hidden" name="goal_action" value="status"><input type="hidden" name="goal_id" value="<?= (int) $goal['goal_id']; ?>"><button name="status" value="paused" type="submit">Pause plan</button><button name="status" value="completed" type="submit">Mark completed</button><button name="status" value="archived" type="submit">Archive plan</button></form></section>
       <?php elseif ($goal['status'] === 'paused'): ?>
         <section class="money-goal-status"><h3>Plan status</h3><p>This plan is paused. Its records stay unchanged until you resume it.</p><form method="post" action="<?= BASE_URL; ?>/modules/money/goals.php"><input type="hidden" name="goal_action" value="status"><input type="hidden" name="goal_id" value="<?= (int) $goal['goal_id']; ?>"><button name="status" value="active" type="submit">Resume plan</button><button name="status" value="archived" type="submit">Archive plan</button></form></section>
@@ -215,6 +258,6 @@ $selectedIsPast = $goal && in_array($goal['status'], ['completed', 'archived'], 
     </section>
   <?php endif; ?>
 
-  <section class="money-goal-create"><h3>New savings plan</h3><p>Create another plan without changing your existing plans or records.</p><form method="post" action="<?= BASE_URL; ?>/modules/money/goals.php"><input type="hidden" name="goal_action" value="create"><label>Plan name<input name="goal_name" maxlength="120" required placeholder="e.g. Emergency fund"></label><label>Target amount<input name="target_amount" type="number" min="0.01" step="0.01" required placeholder="RM 3,000.00"></label><label>Target date <span>(optional)</span><input name="target_date" type="date"></label><label class="money-goal-weekly-amount" data-money-weekly-amount-field>Weekly amount<input name="weekly_amount" data-money-weekly-amount type="number" min="0.01" step="0.01" value="0.00" disabled><small>Enable the plan to set a weekly amount.</small></label><div class="money-goal-plan-options"><label class="money-goal-check money-goal-weekly-toggle"><input name="weekly_plan_enabled" data-money-weekly-plan type="checkbox"> Weekly saving plan</label><label class="money-goal-check"><input name="reminders_enabled" type="checkbox" checked> Show plan reminders</label></div><button type="submit">Create plan</button></form></section>
+  <section class="money-goal-create" data-money-goal-current-only <?= $selectedIsPast ? 'hidden' : ''; ?>><h3>New savings plan</h3><p>Create another plan without changing your existing plans or records.</p><form method="post" action="<?= BASE_URL; ?>/modules/money/goals.php" data-money-weekly-calculator data-money-saved-amount="0"><input type="hidden" name="goal_action" value="create"><label>Plan name<input name="goal_name" maxlength="120" required placeholder="e.g. Emergency fund"></label><label>Target amount<input name="target_amount" data-money-weekly-target type="number" min="0.01" step="0.01" required placeholder="RM 3,000.00"></label><label>Target date <span>(optional)</span><input name="target_date" data-money-weekly-date type="date"></label><label class="money-goal-weekly-amount" data-money-weekly-amount-field>Weekly amount <span>(auto)</span><input name="weekly_amount" data-money-weekly-amount type="number" min="0" step="0.01" value="0.00" disabled><small data-money-weekly-help>Enable the plan to calculate a weekly amount.</small></label><div class="money-goal-plan-options"><label class="money-goal-check money-goal-weekly-toggle"><input name="weekly_plan_enabled" data-money-weekly-plan type="checkbox"> Weekly saving plan</label><label class="money-goal-check"><input name="reminders_enabled" type="checkbox" checked> Show plan reminders</label></div><button type="submit">Create plan</button></form></section>
 </section>
 </template>

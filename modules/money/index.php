@@ -51,7 +51,7 @@ try {
     $previousMonthlyExpenseTotal = moneyGetExpenseTotalForMonth($connection, $userId, $currentMonth->modify('-1 month'));
     $savingsGoals = moneySavingsGoalsForUser($connection, $userId);
     $currentSavingsGoals = array_values(array_filter($savingsGoals, static fn (array $goal): bool => in_array($goal['status'], ['active', 'paused'], true)));
-    $pastSavingsGoals = array_values(array_filter($savingsGoals, static fn (array $goal): bool => in_array($goal['status'], ['completed', 'archived'], true)));
+    $pastSavingsGoals = array_values(array_filter($savingsGoals, static fn (array $goal): bool => $goal['status'] === 'completed'));
     $savingsGoal = $currentSavingsGoals[0] ?? $pastSavingsGoals[0] ?? null;
 
     $analysisSummary = moneyGetSummary($connection, $userId, $analysisFilters);
@@ -152,16 +152,19 @@ renderMoneyStyles();
         <span class="summary-label">Total Income</span>
         <strong>RM <?= number_format($summary['total_income'], 2); ?></strong>
         <p><?= $summary['income_count']; ?> income record<?= $summary['income_count'] === 1 ? '' : 's'; ?></p>
+        <i class="bi bi-wallet2 money-summary-art" aria-hidden="true"></i>
     </article>
     <article class="money-dash-card money-dash-card-expense">
         <span class="summary-label">Total Expense</span>
         <strong>RM <?= number_format($summary['total_expense'], 2); ?></strong>
         <p><?= $summary['expense_count']; ?> expense record<?= $summary['expense_count'] === 1 ? '' : 's'; ?></p>
+        <i class="bi bi-receipt money-summary-art" aria-hidden="true"></i>
     </article>
     <article class="money-dash-card money-dash-card-balance">
         <span class="summary-label">Current Balance</span>
         <strong>RM <?= number_format($summary['balance'], 2); ?></strong>
         <p><?= $summary['total_count']; ?> total transaction<?= $summary['total_count'] === 1 ? '' : 's'; ?></p>
+        <i class="bi bi-coin money-summary-art" aria-hidden="true"></i>
     </article>
 </section>
 
@@ -695,18 +698,77 @@ if (goalCard && goalStage) {
         goalCard.querySelectorAll('[data-money-goal-panel]').forEach((panel) => {
             panel.hidden = panel.dataset.moneyGoalPanel !== tabName;
         });
+        goalCard.querySelectorAll('[data-money-goal-current-only]').forEach((element) => {
+            element.hidden = tabName !== 'current';
+        });
+    };
+    const showGoalTab = async (tabName) => {
+        const panel = goalCard.querySelector(`[data-money-goal-panel="${tabName}"]`);
+        const hasSelectedPlan = panel?.querySelector('.money-goal-plan-card.is-current');
+        const firstPlanSelector = panel?.querySelector('[data-money-goal-select]');
+
+        if (!hasSelectedPlan && firstPlanSelector) {
+            await loadGoalTemplate(firstPlanSelector.dataset.moneyGoalSelect, true);
+        } else if (!hasSelectedPlan) {
+            goalCard.querySelector('.money-goal-selected-detail')?.remove();
+        }
+
+        setGoalTab(tabName);
     };
     const syncWeeklyPlanFields = (scope) => {
-        scope.querySelectorAll('[data-money-weekly-plan]').forEach((toggle) => {
-            const form = toggle.closest('form');
-            const weeklyInput = form?.querySelector('[data-money-weekly-amount]');
-            const weeklyField = form?.querySelector('[data-money-weekly-amount-field]');
-            if (!weeklyInput || !weeklyField) return;
-            const isEnabled = toggle.checked;
-            weeklyInput.disabled = !isEnabled;
-            weeklyInput.required = isEnabled;
-            weeklyField.classList.toggle('is-disabled', !isEnabled);
-            if (!isEnabled) weeklyInput.value = '0.00';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        scope.querySelectorAll('[data-money-weekly-calculator]').forEach((form) => {
+            const toggle = form.querySelector('[data-money-weekly-plan]');
+            const targetInput = form.querySelector('[data-money-weekly-target]');
+            const dateInput = form.querySelector('[data-money-weekly-date]');
+            const weeklyInput = form.querySelector('[data-money-weekly-amount]');
+            const weeklyField = form.querySelector('[data-money-weekly-amount-field]');
+            const help = form.querySelector('[data-money-weekly-help]');
+            if (!toggle || !targetInput || !dateInput || !weeklyInput || !weeklyField) return;
+            const setUnavailable = (message) => {
+                weeklyInput.disabled = true;
+                weeklyInput.readOnly = false;
+                weeklyInput.value = '0.00';
+                weeklyField.classList.add('is-disabled');
+                if (help) help.textContent = message;
+            };
+
+            if (!toggle.checked) {
+                dateInput.required = false;
+                dateInput.removeAttribute('min');
+                setUnavailable('Enable the plan to calculate a weekly amount.');
+                return;
+            }
+
+            dateInput.required = true;
+            dateInput.min = todayIso;
+            const target = Number(targetInput.value);
+            if (!Number.isFinite(target) || target <= 0) {
+                setUnavailable('Enter a target amount to calculate the weekly amount.');
+                return;
+            }
+            if (!dateInput.value) {
+                setUnavailable('Choose a target date to calculate the weekly amount.');
+                return;
+            }
+
+            const targetDate = new Date(`${dateInput.value}T00:00:00`);
+            const daysUntilTarget = Math.round((targetDate.getTime() - today.getTime()) / 86400000);
+            if (!Number.isFinite(targetDate.getTime()) || daysUntilTarget < 0) {
+                setUnavailable('Choose today or a future target date.');
+                return;
+            }
+
+            const weeksUntilTarget = Math.max(1, Math.ceil(daysUntilTarget / 7));
+            const savedAmount = Math.max(0, Number(form.dataset.moneySavedAmount || 0));
+            const weeklyAmount = Math.max(0, target - savedAmount) / weeksUntilTarget;
+            weeklyInput.disabled = false;
+            weeklyInput.readOnly = true;
+            weeklyInput.value = weeklyAmount.toFixed(2);
+            weeklyField.classList.remove('is-disabled');
+            if (help) help.textContent = weeklyAmount > 0 ? `Auto-calculated from ${weeksUntilTarget} week${weeksUntilTarget === 1 ? '' : 's'} until your target date.` : 'Target reached — no weekly record is needed.';
         });
     };
     const loadGoalTemplate = async (goalId = null, preserveContent = false) => {
@@ -729,13 +791,16 @@ if (goalCard && goalStage) {
         }
     };
     window.addEventListener('money:collapse-goal', () => { if (goalCard.classList.contains('is-expanded')) collapseGoalCard(); });
+    goalCard.addEventListener('input', (event) => {
+        if (event.target.matches('[data-money-weekly-target]')) syncWeeklyPlanFields(goalCard);
+    });
     goalCard.addEventListener('change', (event) => {
-        if (event.target.matches('[data-money-weekly-plan]')) syncWeeklyPlanFields(goalCard);
+        if (event.target.matches('[data-money-weekly-plan], [data-money-weekly-date]')) syncWeeklyPlanFields(goalCard);
     });
     goalCard.addEventListener('click', async (event) => {
         if (event.target.closest('[data-money-goal-collapse]')) { collapseGoalCard(); return; }
         const goalTab = event.target.closest('[data-money-goal-tab]');
-        if (goalCard.classList.contains('is-expanded') && goalTab) { event.preventDefault(); setGoalTab(goalTab.dataset.moneyGoalTab); return; }
+        if (goalCard.classList.contains('is-expanded') && goalTab) { event.preventDefault(); await showGoalTab(goalTab.dataset.moneyGoalTab); return; }
         const goalSelector = event.target.closest('[data-money-goal-select]');
         if (goalCard.classList.contains('is-expanded') && goalSelector) {
             event.preventDefault();
@@ -760,7 +825,11 @@ if (goalCard && goalStage) {
             syncWeeklyPlanFields(goalCard);
         } catch (error) { goalCard.innerHTML = '<button class="money-analysis-inline-close" type="button" data-money-goal-collapse><i class="bi bi-x-lg" aria-hidden="true"></i> Close</button><p class="money-analysis-inline-loading">Unable to load this goal.</p>'; }
     });
-    goalCard.addEventListener('keydown', (event) => { if ((event.key === 'Enter' || event.key === ' ') && !goalCard.classList.contains('is-expanded')) { event.preventDefault(); goalCard.click(); } });
+    goalCard.addEventListener('keydown', (event) => {
+        const goalSelector = event.target.closest('[data-money-goal-select]');
+        if (goalCard.classList.contains('is-expanded') && goalSelector && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); goalSelector.click(); return; }
+        if ((event.key === 'Enter' || event.key === ' ') && !goalCard.classList.contains('is-expanded')) { event.preventDefault(); goalCard.click(); }
+    });
     if (new URLSearchParams(window.location.search).get('goal_open') === '1') window.requestAnimationFrame(() => goalCard.click());
 }
 
