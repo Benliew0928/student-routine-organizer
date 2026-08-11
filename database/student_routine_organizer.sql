@@ -247,4 +247,38 @@ UNION ALL SELECT user_id, 26.50, 'Food', 'Lunch and snacks.', 'expense', '2026-0
 UNION ALL SELECT user_id, 18.00, 'Transport', 'Train and bus fares.', 'expense', '2026-06-09' FROM users WHERE email = 'student@example.com'
 UNION ALL SELECT user_id, 45.00, 'Shopping', 'Reference book.', 'expense', '2026-06-13' FROM users WHERE email = 'student@example.com'
 UNION ALL SELECT user_id, 68.00, 'Bills', 'Mobile data plan.', 'expense', '2026-06-20' FROM users WHERE email = 'student@example.com'
-UNION ALL SELECT user_id, 30.00, 'Entertainment', 'Campus event ticket.', 'expense', '2026-06-27' FROM users WHERE email = 'student@example.com';
+UNION ALL SELECT user_id, 30.00, 'Entertainment', 'Campus event ticket.', 'expense', '2026-06-27' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 850.00, 'Salary', 'Campus assistant payment.', 'income', '2026-08-01' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 250.00, 'Allowance', 'Monthly family allowance.', 'income', '2026-08-02' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 120.00, 'Freelance', 'Tutor two mathematics sessions.', 'income', '2026-08-05' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 35.00, 'Others', 'Sold unused reference book.', 'income', '2026-08-07' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 18.50, 'Food', 'Lunch at campus cafe.', 'expense', '2026-08-02' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 6.00, 'Transport', 'Bus fare to campus.', 'expense', '2026-08-03' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 42.90, 'Shopping', 'Notebook and printer paper.', 'expense', '2026-08-04' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 30.00, 'Education', 'Online course subscription.', 'expense', '2026-08-05' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 55.00, 'Bills', 'Mobile data plan.', 'expense', '2026-08-06' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 14.00, 'Entertainment', 'Movie with classmates.', 'expense', '2026-08-08' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 22.00, 'Healthcare', 'Pharmacy essentials.', 'expense', '2026-08-09' FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 9.50, 'Others', 'Laundry card top-up.', 'expense', '2026-08-10' FROM users WHERE email = 'student@example.com';
+
+INSERT INTO money_savings_goals (user_id, goal_name, target_amount, target_date, weekly_amount, auto_save_enabled, reminders_enabled, status)
+SELECT user_id, 'Laptop upgrade', 1200.00, '2026-12-15', 36.11, 1, 1, 'active'
+FROM users WHERE email = 'student@example.com'
+UNION ALL SELECT user_id, 'Weekend trip', 500.00, '2026-10-30', 0.00, 0, 0, 'paused'
+FROM users WHERE email = 'student@example.com';
+
+INSERT INTO money_savings_goals (user_id, goal_name, target_amount, target_date, weekly_amount, auto_save_enabled, reminders_enabled, status, completed_at)
+SELECT user_id, 'Textbook fund', 300.00, '2026-07-31', 0.00, 0, 1, 'completed', '2026-07-25 18:00:00'
+FROM users WHERE email = 'student@example.com';
+
+INSERT INTO money_savings_contributions (goal_id, user_id, amount, note, contribution_date)
+SELECT goal_id, user_id, 250.00, 'Set aside from assistant payment.', '2026-08-01'
+FROM money_savings_goals WHERE goal_name = 'Laptop upgrade'
+UNION ALL SELECT goal_id, user_id, 300.00, 'Saved after freelance tutoring.', '2026-08-05'
+FROM money_savings_goals WHERE goal_name = 'Laptop upgrade'
+UNION ALL SELECT goal_id, user_id, 100.00, 'Initial travel fund.', '2026-07-20'
+FROM money_savings_goals WHERE goal_name = 'Weekend trip'
+UNION ALL SELECT goal_id, user_id, 150.00, 'First savings transfer.', '2026-07-05'
+FROM money_savings_goals WHERE goal_name = 'Textbook fund'
+UNION ALL SELECT goal_id, user_id, 150.00, 'Fund completed.', '2026-07-25'
+FROM money_savings_goals WHERE goal_name = 'Textbook fund';
