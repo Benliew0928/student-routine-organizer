@@ -555,3 +555,101 @@ document.querySelectorAll('[data-time-picker]').forEach((picker) => {
 
     hydrateFromValue();
 });
+
+document.querySelectorAll('[data-password-toggle]').forEach((toggle) => {
+    if (!(toggle instanceof HTMLButtonElement)) {
+        return;
+    }
+
+    const inputId = toggle.getAttribute('aria-controls');
+    const passwordInput = inputId ? document.getElementById(inputId) : null;
+
+    if (!(passwordInput instanceof HTMLInputElement)) {
+        return;
+    }
+
+    toggle.addEventListener('click', () => {
+        const showing = passwordInput.type === 'text';
+        passwordInput.type = showing ? 'password' : 'text';
+        toggle.setAttribute('aria-pressed', showing ? 'false' : 'true');
+        toggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+
+        const icon = toggle.querySelector('i');
+        if (icon instanceof HTMLElement) {
+            icon.classList.toggle('bi-eye', showing);
+            icon.classList.toggle('bi-eye-slash', !showing);
+        }
+
+        passwordInput.focus();
+    });
+});
+
+document.querySelectorAll('[data-password-assistance]').forEach((assistance) => {
+    if (!(assistance instanceof HTMLElement)) {
+        return;
+    }
+
+    const form = assistance.closest('form');
+    const passwordInput = form?.querySelector('[data-password-primary]');
+    const confirmationInput = form?.querySelector('[data-password-confirmation]');
+    const confirmationStatus = form?.querySelector('[data-password-confirmation-status]');
+    const summary = assistance.querySelector('[data-password-summary]');
+    const bar = assistance.querySelector('.password-requirement-bar');
+
+    if (!(passwordInput instanceof HTMLInputElement)) {
+        return;
+    }
+
+    const updatePasswordAssistance = () => {
+        const password = passwordInput.value;
+        const rules = {
+            length: password.length >= 12 && password.length <= 128,
+            uppercase: /[A-Z]/.test(password),
+            lowercase: /[a-z]/.test(password),
+            number: /[0-9]/.test(password),
+            symbol: /[^A-Za-z0-9\s]/.test(password) && !/\s/.test(password),
+        };
+        const completed = Object.values(rules).filter(Boolean).length;
+
+        assistance.querySelectorAll('.password-requirement-segment').forEach((segment, index) => {
+            segment.classList.toggle('is-met', index < completed);
+        });
+
+        assistance.querySelectorAll('.password-requirement-list [data-password-rule]').forEach((element) => {
+            const rule = element.getAttribute('data-password-rule');
+            const met = rule !== null && rules[rule] === true;
+            element.classList.toggle('is-met', met);
+
+            const icon = element.querySelector('i');
+            if (icon instanceof HTMLElement) {
+                icon.className = met ? 'bi bi-check-circle-fill' : 'bi bi-circle';
+            }
+        });
+
+        if (summary instanceof HTMLElement) {
+            summary.textContent = `${completed} of 5 password requirements met`;
+        }
+        if (bar instanceof HTMLElement) {
+            bar.setAttribute('aria-valuenow', String(completed));
+        }
+
+        if (confirmationInput instanceof HTMLInputElement && confirmationStatus instanceof HTMLElement) {
+            if (confirmationInput.value === '') {
+                confirmationStatus.classList.remove('is-match', 'is-mismatch');
+                confirmationStatus.textContent = 'Enter the password again to confirm it.';
+            } else if (confirmationInput.value === password) {
+                confirmationStatus.classList.remove('is-mismatch');
+                confirmationStatus.classList.add('is-match');
+                confirmationStatus.textContent = 'Passwords match.';
+            } else {
+                confirmationStatus.classList.remove('is-match');
+                confirmationStatus.classList.add('is-mismatch');
+                confirmationStatus.textContent = 'Passwords do not match yet.';
+            }
+        }
+    };
+
+    passwordInput.addEventListener('input', updatePasswordAssistance);
+    confirmationInput?.addEventListener('input', updatePasswordAssistance);
+    updatePasswordAssistance();
+});

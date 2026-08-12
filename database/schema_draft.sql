@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS habit_records;
 DROP TABLE IF EXISTS money_savings_contributions;
 DROP TABLE IF EXISTS money_savings_goals;
 DROP TABLE IF EXISTS money_transactions;
+DROP TABLE IF EXISTS password_resets;
 DROP TABLE IF EXISTS journal_drafts;
 DROP TABLE IF EXISTS journal_entries;
 DROP TABLE IF EXISTS exercise_blogs;
@@ -118,6 +119,18 @@ CREATE TABLE money_transactions (
     ON DELETE CASCADE,
   INDEX idx_money_user_date (user_id, transaction_date),
   INDEX idx_money_type_category (transaction_type, category)
+);
+
+CREATE TABLE password_resets (
+  reset_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  token_hash CHAR(64) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  used_at DATETIME NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_password_reset_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  UNIQUE KEY uq_password_reset_token_hash (token_hash),
+  INDEX idx_password_reset_user_active (user_id, used_at, expires_at)
 );
 
 CREATE TABLE money_savings_goals (

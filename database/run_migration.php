@@ -38,6 +38,7 @@ try {
         'journal_migration.sql',
         'money_goals_migration.sql',
         'exercise_photo_migration.sql',
+        'password_reset_migration.sql',
     ] as $filename) {
         runMigrationFile($db, __DIR__ . '/' . $filename);
     }

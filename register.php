@@ -39,9 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Email must be 120 characters or fewer.';
     }
 
-    if (strlen($password) < 6) {
-        $errors[] = 'Password must be at least 6 characters.';
-    }
+    $errors = array_merge($errors, passwordPolicyErrors($password));
 
     if ($password !== $confirmPassword) {
         $errors[] = 'Password confirmation does not match.';
@@ -98,10 +96,39 @@ require __DIR__ . '/includes/header.php';
         <input id="email" name="email" type="email" autocomplete="email" value="<?= escapeOutput($email); ?>" required>
 
         <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="new-password" required>
+        <div class="password-input-control">
+            <button class="password-visibility-toggle" type="button" data-password-toggle aria-controls="password" aria-label="Show password" aria-pressed="false">
+                <i class="bi bi-eye" aria-hidden="true"></i>
+            </button>
+            <input id="password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" data-password-primary required>
+        </div>
+
+        <div class="password-assistance" data-password-assistance>
+            <div class="password-requirement-bar" role="progressbar" aria-label="Password requirements met" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0">
+                <span class="password-requirement-segment" data-password-rule="length"></span>
+                <span class="password-requirement-segment" data-password-rule="uppercase"></span>
+                <span class="password-requirement-segment" data-password-rule="lowercase"></span>
+                <span class="password-requirement-segment" data-password-rule="number"></span>
+                <span class="password-requirement-segment" data-password-rule="symbol"></span>
+            </div>
+            <p class="password-requirement-summary" data-password-summary aria-live="polite">0 of 5 password requirements met</p>
+            <ul class="password-requirement-list">
+                <li data-password-rule="length"><i class="bi bi-circle" aria-hidden="true"></i>12-128 characters</li>
+                <li data-password-rule="uppercase"><i class="bi bi-circle" aria-hidden="true"></i>Uppercase letter</li>
+                <li data-password-rule="lowercase"><i class="bi bi-circle" aria-hidden="true"></i>Lowercase letter</li>
+                <li data-password-rule="number"><i class="bi bi-circle" aria-hidden="true"></i>Number</li>
+                <li data-password-rule="symbol"><i class="bi bi-circle" aria-hidden="true"></i>Symbol and no spaces</li>
+            </ul>
+        </div>
 
         <label for="confirm_password">Confirm Password</label>
-        <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required>
+        <div class="password-input-control">
+            <button class="password-visibility-toggle" type="button" data-password-toggle aria-controls="confirm_password" aria-label="Show password confirmation" aria-pressed="false">
+                <i class="bi bi-eye" aria-hidden="true"></i>
+            </button>
+            <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" minlength="12" maxlength="128" data-password-confirmation required>
+        </div>
+        <p class="password-confirmation-status" data-password-confirmation-status aria-live="polite">Enter the password again to confirm it.</p>
 
         <button class="button primary" type="submit">Create Account</button>
     </form>

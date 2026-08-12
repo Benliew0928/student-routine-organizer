@@ -88,7 +88,12 @@ require __DIR__ . '/includes/header.php';
         <input id="email" name="email" type="email" autocomplete="email" value="<?= escapeOutput($email); ?>" required>
 
         <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <div class="password-input-control">
+            <button class="password-visibility-toggle" type="button" data-password-toggle aria-controls="password" aria-label="Show password" aria-pressed="false">
+                <i class="bi bi-eye" aria-hidden="true"></i>
+            </button>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
 
         <label class="checkbox-line">
             <input name="remember_email" type="checkbox" value="1" <?= $email !== '' ? 'checked' : ''; ?>>
@@ -98,8 +103,7 @@ require __DIR__ . '/includes/header.php';
         <button class="button primary" type="submit">Login</button>
     </form>
 
-    <p class="muted account-hint">Sample student: student@example.com / password123</p>
-    <p class="muted account-hint">Sample admin: admin@example.com / admin123</p>
+    <p class="muted"><a href="<?= BASE_URL; ?>/forgot_password.php">Forgot password?</a></p>
 </section>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>
