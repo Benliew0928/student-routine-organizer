@@ -19,6 +19,7 @@ try {
     $incomeBreakdown = moneyGetCategoryBreakdown($connection, $userId, 'income');
     $expenseBreakdown = moneyGetCategoryBreakdown($connection, $userId, 'expense');
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'money analysis');
     $pageError = 'Money analysis is unavailable right now. Please check the database setup.';
 }
 

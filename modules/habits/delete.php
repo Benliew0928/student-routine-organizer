@@ -20,7 +20,10 @@ try {
         $stmt->bind_param('ii', $habitId, $userId); $stmt->execute();
         setFlash('success', 'Quest blueprint and its Momentum Trail entries were deleted.'); header('Location: ' . BASE_URL . '/modules/habits/manage.php'); exit;
     }
-} catch (Throwable $exception) { $pageError = 'Quest deletion is unavailable right now. Please check the database setup.'; }
+} catch (Throwable $exception) {
+    logApplicationException($exception, 'habit delete');
+    $pageError = 'Quest deletion is unavailable right now. Please check the database setup.';
+}
 $pageTitle = 'Delete Quest'; require __DIR__ . '/../../includes/header.php';
 ?>
 <section class="confirmation-page"><div class="confirmation-orb danger" aria-hidden="true"><i class="bi bi-trash3"></i></div><p class="sanctuary-kicker">Permanent removal</p><h1>Remove this quest blueprint?</h1><?php if ($pageError): ?><div class="alert alert-error"><?= escapeOutput($pageError); ?></div><?php elseif ($habit): ?><p>Removing <strong><?= escapeOutput($habit['habit_name']); ?></strong> also removes every dated entry attached to it. Archive it instead if you may want to return to it.</p><dl class="confirmation-details"><div><dt>Realm</dt><dd><?= escapeOutput(habitRealmOptions()[$habit['realm']]['label']); ?></dd></div><div><dt>Schedule</dt><dd><?= escapeOutput(habitDisplaySchedule($habit)); ?></dd></div><div><dt>Created</dt><dd><?= escapeOutput(date('j M Y', strtotime($habit['created_at']))); ?></dd></div></dl><form method="post" action="<?= BASE_URL; ?>/modules/habits/delete.php?id=<?= (int) $habitId; ?>"><?= csrfInput(); ?><div class="blueprint-actions"><button class="sanctuary-button sanctuary-button-danger" type="submit"><i class="bi bi-trash3" aria-hidden="true"></i>Delete permanently</button><a class="sanctuary-button sanctuary-button-quiet" href="<?= BASE_URL; ?>/modules/habits/manage.php">Keep it</a></div></form><?php endif; ?></section>

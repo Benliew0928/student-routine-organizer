@@ -47,6 +47,7 @@ try {
         }
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'journal draft delete');
     $pageError = 'Journal draft deletion is unavailable right now.';
 }
 

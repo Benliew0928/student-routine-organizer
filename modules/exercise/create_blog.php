@@ -36,6 +36,7 @@ try {
         }
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'exercise blog create');
     $pageError = 'Exercise blog creation is unavailable right now. Please check the database setup.';
 }
 

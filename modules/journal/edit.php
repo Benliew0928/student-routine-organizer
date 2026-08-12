@@ -64,6 +64,7 @@ try {
         }
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'journal edit');
     $pageError = 'Journal editing is unavailable right now. Please check the database setup.';
 }
 

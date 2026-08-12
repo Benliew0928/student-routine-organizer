@@ -95,6 +95,7 @@ try {
         exit;
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'money index');
     $pageError = 'Money transactions are unavailable right now. Please check the database setup.';
 }
 

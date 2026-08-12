@@ -1,8 +1,7 @@
 Student Routine Organizer
 
-Current Phase:
-- Phase 5 Exercise Tracker completed for Member 1.
-- Phase 8 Habit Tracker completed for Member 4.
+Current modules:
+- Exercise Tracker, Diary Journal, Money Tracker, and Habit Tracker are implemented.
 
 Local Requirements:
 - XAMPP
@@ -25,6 +24,9 @@ Database Import:
 1. Open phpMyAdmin at http://localhost/phpmyadmin/.
 2. Create or select the database named student_routine_organizer.
 3. Import database/student_routine_organizer.sql.
+
+Existing Database Upgrade:
+- To retain existing local records while adding the Journal editor and Money savings-goal tables, run `C:\xampp\php\php.exe database\run_migration.php` from the project folder. This script is CLI-only and cannot be run through Apache.
 
 Habit Tracker Database:
 - The Twilight Conservatory redesign uses a fresh `habits` + `habit_logs` model.
@@ -55,5 +57,6 @@ Implemented So Far:
 - Exercise Tracker CRUD
 - Exercise summaries, filters, sorting, CSV export, and CSRF-protected forms
 - Database-backed Journal drafts with autosave, cross-device resume, and safe publication
+- Money Tracker CRUD, summaries, filters, CSV export, and manual savings goals
 - Twilight Conservatory Habit Tracker
 - Reusable quest blueprints, daily quest logs, realm progress, Momentum Trail, archive/restore, and CSRF-protected forms

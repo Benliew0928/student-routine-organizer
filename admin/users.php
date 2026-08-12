@@ -13,6 +13,7 @@ try {
     $result = $connection->query('SELECT user_id, full_name, email, role, created_at FROM users ORDER BY created_at DESC, user_id DESC');
     $users = $result->fetch_all(MYSQLI_ASSOC);
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'admin users');
     $usersError = 'Registered users are unavailable right now.';
 }
 

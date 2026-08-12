@@ -33,6 +33,7 @@ try {
         ],
     ];
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'admin summaries');
     $summaryError = 'System summaries are unavailable right now.';
 }
 

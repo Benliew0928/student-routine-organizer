@@ -25,19 +25,30 @@ try {
         $columns[] = $row['Field'];
     }
 
-    test('journal_drafts exposes the approved columns', function () use ($columns): void {
+    test('journal_drafts exposes all editor columns', function () use ($columns): void {
+        $expectedColumns = [
+            'draft_id',
+            'user_id',
+            'title',
+            'content',
+            'mood_status',
+            'entry_date',
+            'template_key',
+            'subject',
+            'weather',
+            'tags',
+            'paper_style',
+            'starred',
+            'canvas_json',
+            'created_at',
+            'updated_at',
+        ];
+
+        sort($expectedColumns);
+        sort($columns);
+
         assertSameValue(
-            [
-                'draft_id',
-                'user_id',
-                'title',
-                'content',
-                'mood_status',
-                'entry_date',
-                'template_key',
-                'created_at',
-                'updated_at',
-            ],
+            $expectedColumns,
             $columns
         );
     });

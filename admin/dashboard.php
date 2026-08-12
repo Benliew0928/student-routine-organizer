@@ -30,6 +30,7 @@ try {
     $habitTotals = $connection->query("SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN completion_status = 'completed' THEN 1 ELSE 0 END), 0) AS completed FROM habit_logs WHERE deleted_at IS NULL AND scheduled_date BETWEEN DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY) AND DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 6 DAY)")->fetch_assoc();
     $summary['habit_completion'] = (int) $habitTotals['total'] ? (int) round(((int) $habitTotals['completed'] / (int) $habitTotals['total']) * 100) : 0;
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'admin dashboard');
     $dashboardError = 'Admin summaries are unavailable right now.';
 }
 

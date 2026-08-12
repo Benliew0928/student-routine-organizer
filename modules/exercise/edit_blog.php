@@ -57,6 +57,7 @@ try {
         }
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'exercise blog edit');
     $pageError = 'Exercise blog editing is unavailable right now. Please check the database setup.';
 }
 

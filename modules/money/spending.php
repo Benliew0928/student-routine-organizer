@@ -33,6 +33,7 @@ try {
     $stmt->execute();
     $recentExpenses = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'money spending');
     $pageError = 'Spending insights are unavailable right now. Please check the database setup.';
 }
 

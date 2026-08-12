@@ -56,6 +56,7 @@ try {
     $streaks = habitStreaks($connection, $userId);
     $weeklyStory = habitWeeklyStory($realmStats);
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'habit index');
     $pageError = 'Your sanctuary is unavailable right now. Please check the database setup.';
     $realmStats = [];
     $quests = [];

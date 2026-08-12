@@ -191,8 +191,11 @@ test('journal edit page verifies ownership csrf and scoped update', function ():
     assertTrueValue(is_string($source));
     assertTrueValue(str_contains($source, 'journalLoadForUser('));
     assertTrueValue(str_contains($source, 'verifyCsrfToken('));
-    assertTrueValue(str_contains($source, 'UPDATE journal_entries'));
-    assertTrueValue(str_contains($source, 'WHERE journal_id = ? AND user_id = ?'));
+    assertTrueValue(str_contains($source, 'journalUpdateEntry('));
+    $helpers = file_get_contents(__DIR__ . '/../modules/journal/journal_helpers.php');
+    assertTrueValue(is_string($helpers));
+    assertTrueValue(str_contains($helpers, 'UPDATE journal_entries'));
+    assertTrueValue(str_contains($helpers, 'WHERE journal_id = ? AND user_id = ?'));
     assertSameValue(false, str_contains($source, 'will be implemented'));
 });
 
@@ -236,7 +239,7 @@ test('journal list renders owned database drafts separately', function (): void 
 
     assertTrueValue(str_contains($source, 'journalListDraftsForUser('));
     assertTrueValue(str_contains($source, 'Your Drafts'));
-    assertTrueValue(str_contains($source, 'Continue Writing'));
+    assertTrueValue(str_contains($source, '> Continue</a>'));
     assertTrueValue(str_contains($source, 'draft_delete.php?id='));
 });
 
@@ -252,25 +255,19 @@ test('draft delete page confirms and scopes deletion', function (): void {
 });
 
 test('journal stylesheet defines all major responsive components', function (): void {
-    $source = file_get_contents(__DIR__ . '/../assets/css/style.css');
+    $source = file_get_contents(__DIR__ . '/../assets/css/journal_editor.css');
 
     assertTrueValue(is_string($source));
     foreach ([
-        '.journal-hero',
-        '.journal-filter-form',
-        '.journal-card-grid',
-        '.journal-reading-page',
-        '.journal-template-grid',
-        '.journal-editor-panel',
-        '.journal-draft-grid',
-        '.journal-draft-card',
-        '.journal-save-status',
+        '.noted-app-container',
+        '.noted-header',
+        '.noted-sidebar',
+        '.noted-paper-container',
         '.journal-delete-panel',
     ] as $selector) {
         assertTrueValue(str_contains($source, $selector), 'Missing CSS selector ' . $selector);
     }
-    assertTrueValue(str_contains($source, '.journal-save-status [hidden]'));
-    assertSameValue(false, str_contains($source, '.journal-draft-banner'));
+    assertTrueValue(str_contains($source, '[contenteditable="true"]'));
 });
 
 test('draft validation allows incomplete fields', function (): void {

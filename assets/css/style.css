@@ -2490,6 +2490,50 @@ textarea {
     justify-content: space-between;
 }
 
+.exercise-card-photo,
+.exercise-photo-preview {
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(35, 106, 84, 0.14);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.exercise-card-photo {
+    display: block;
+    max-height: 150px;
+}
+
+.exercise-card-photo img {
+    display: block;
+    height: 150px;
+    object-fit: cover;
+    width: 100%;
+}
+
+.exercise-photo-preview {
+    align-items: center;
+    display: flex;
+    gap: 14px;
+    padding: 10px;
+}
+
+.exercise-photo-preview img {
+    border-radius: 8px;
+    height: 78px;
+    object-fit: cover;
+    width: 104px;
+}
+
+.exercise-photo-preview .checkbox-line {
+    margin: 6px 0 0;
+}
+
+.field-hint {
+    color: var(--muted);
+    font-size: 13px;
+    margin: -6px 0 12px;
+}
+
 .exercise-stat-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

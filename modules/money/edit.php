@@ -68,6 +68,7 @@ try {
         }
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'money edit');
     $pageError = 'Transaction edit is unavailable right now. Please check the database setup.';
 }
 

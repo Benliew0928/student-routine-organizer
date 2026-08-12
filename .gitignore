@@ -5,4 +5,11 @@ tmp/
 .env
 .worktrees/
 *.pdf
+*.lnk
+/storage/exercise-photos/*
+!/storage/exercise-photos/.htaccess
+!/storage/exercise-photos/.gitkeep
+/storage/logs/*
+!/storage/logs/.htaccess
+!/storage/logs/.gitkeep
 

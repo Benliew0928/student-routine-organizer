@@ -6,11 +6,13 @@ $navItems = [
     'Money' => BASE_URL . '/modules/money/index.php',
     'Habits' => BASE_URL . '/modules/habits/index.php',
 ];
+$isAuthenticated = isLoggedIn();
+$brandHref = $isAuthenticated ? BASE_URL . '/dashboard.php' : BASE_URL . '/index.php';
 ?>
 <header class="topbar">
-    <a class="brand" href="<?= BASE_URL; ?>/index.php"><?= APP_NAME; ?></a>
+    <a class="brand" href="<?= $brandHref; ?>"><?= APP_NAME; ?></a>
     <nav class="nav-links" aria-label="Main navigation">
-        <?php if (isLoggedIn()): ?>
+        <?php if ($isAuthenticated): ?>
             <?php foreach ($navItems as $label => $href): ?>
                 <a href="<?= $href; ?>"><?= escapeOutput($label); ?></a>
             <?php endforeach; ?>
@@ -24,4 +26,3 @@ $navItems = [
         <?php endif; ?>
     </nav>
 </header>
-

@@ -57,6 +57,7 @@ try {
     $stmt->execute();
     $records = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'journal index');
     $pageError = 'Journal entries are unavailable right now. Please check the database setup.';
 }
 

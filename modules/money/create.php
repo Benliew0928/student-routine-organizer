@@ -44,6 +44,7 @@ try {
         }
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'money create');
     $pageError = 'Transaction creation is unavailable right now. Please check the database setup.';
 }
 

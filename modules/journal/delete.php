@@ -47,6 +47,7 @@ try {
         exit;
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'journal delete');
     $pageError = 'Journal deletion is unavailable right now. Please check the database setup.';
 }
 

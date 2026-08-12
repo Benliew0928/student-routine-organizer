@@ -97,6 +97,7 @@ try {
     $records = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $streaks = habitStreaks($connection, $userId);
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'habit manage');
     $pageError = 'Quest blueprints are unavailable right now. Please check the database setup.';
 }
 

@@ -46,6 +46,7 @@ try {
         exit;
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'exercise blog delete');
     $pageError = 'Exercise blog deletion is unavailable right now. Please check the database setup.';
 }
 

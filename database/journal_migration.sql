@@ -127,3 +127,8 @@ SET @preparedStatement = (SELECT IF(
 PREPARE alterIfNotExists FROM @preparedStatement;
 EXECUTE alterIfNotExists;
 DEALLOCATE PREPARE alterIfNotExists;
+
+-- Rename the old sample key to the current supported key.
+UPDATE journal_drafts
+SET template_key = 'daily_reflection'
+WHERE template_key = 'reflection';

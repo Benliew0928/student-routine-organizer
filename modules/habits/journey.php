@@ -19,6 +19,7 @@ try {
     $streaks = habitStreaks($connection, $userId);
     $days = iterator_to_array(new DatePeriod($weekStart, new DateInterval('P1D'), $weekEnd->modify('+1 day')));
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'habit journey');
     $pageError = 'Your Momentum Trail is unavailable right now. Please check the database setup.';
     $rows = [];
     $streaks = [];

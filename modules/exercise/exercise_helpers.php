@@ -180,6 +180,134 @@ function exerciseLoadForUser(mysqli $connection, int $exerciseId, int $userId): 
     return $exercise ?: null;
 }
 
+function exercisePhotoMimeTypes(): array
+{
+    return [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+    ];
+}
+
+function exercisePhotoDirectory(): string
+{
+    return dirname(__DIR__, 2) . '/storage/exercise-photos';
+}
+
+function exercisePhotoFilenameIsSafe(?string $filename): bool
+{
+    return is_string($filename) && preg_match('/^[a-f0-9]{32}\.(?:jpg|png)$/D', $filename) === 1;
+}
+
+function exercisePhotoStoragePath(?string $filename): ?string
+{
+    if (!exercisePhotoFilenameIsSafe($filename)) {
+        return null;
+    }
+
+    return exercisePhotoDirectory() . '/' . $filename;
+}
+
+function exerciseHasPhoto(array $exercise): bool
+{
+    $filename = $exercise['photo_filename'] ?? null;
+    $mimeType = $exercise['photo_mime_type'] ?? null;
+
+    return exercisePhotoFilenameIsSafe(is_string($filename) ? $filename : null)
+        && is_string($mimeType)
+        && array_key_exists($mimeType, exercisePhotoMimeTypes());
+}
+
+function exercisePhotoUrl(int $exerciseId): string
+{
+    return BASE_URL . '/modules/exercise/photo.php?id=' . $exerciseId;
+}
+
+function exercisePhotoUploadFromRequest(array $files): array
+{
+    $file = $files['exercise_photo'] ?? null;
+    if ($file === null) {
+        return ['photo' => null, 'errors' => []];
+    }
+
+    if (!is_array($file) || is_array($file['error'] ?? null)) {
+        return ['photo' => null, 'errors' => ['Please choose one image file.']];
+    }
+
+    $uploadError = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($uploadError === UPLOAD_ERR_NO_FILE) {
+        return ['photo' => null, 'errors' => []];
+    }
+
+    if ($uploadError !== UPLOAD_ERR_OK) {
+        return ['photo' => null, 'errors' => ['The exercise photo could not be uploaded. Please try again.']];
+    }
+
+    $size = (int) ($file['size'] ?? 0);
+    if ($size <= 0 || $size > (2 * 1024 * 1024)) {
+        return ['photo' => null, 'errors' => ['Exercise photos must be JPEG or PNG files no larger than 2 MB.']];
+    }
+
+    $temporaryPath = $file['tmp_name'] ?? '';
+    if (!is_string($temporaryPath) || $temporaryPath === '' || !is_file($temporaryPath)) {
+        return ['photo' => null, 'errors' => ['The uploaded exercise photo is invalid.']];
+    }
+
+    try {
+        $mimeType = (new finfo(FILEINFO_MIME_TYPE))->file($temporaryPath);
+    } catch (Throwable $exception) {
+        logApplicationException($exception, 'exercise photo validation');
+        return ['photo' => null, 'errors' => ['The uploaded exercise photo could not be verified.']];
+    }
+
+    if (!is_string($mimeType) || !array_key_exists($mimeType, exercisePhotoMimeTypes())) {
+        return ['photo' => null, 'errors' => ['Exercise photos must be JPEG or PNG files.']];
+    }
+
+    return [
+        'photo' => [
+            'tmp_name' => $temporaryPath,
+            'mime_type' => $mimeType,
+            'extension' => exercisePhotoMimeTypes()[$mimeType],
+        ],
+        'errors' => [],
+    ];
+}
+
+function exerciseStoreUploadedPhoto(array $photo): array
+{
+    $directory = exercisePhotoDirectory();
+    if (!is_dir($directory) && !@mkdir($directory, 0775, true) && !is_dir($directory)) {
+        throw new RuntimeException('Could not create the exercise photo directory.');
+    }
+
+    $filename = bin2hex(random_bytes(16)) . '.' . $photo['extension'];
+    $destination = exercisePhotoStoragePath($filename);
+
+    if ($destination === null || !@move_uploaded_file((string) $photo['tmp_name'], $destination)) {
+        throw new RuntimeException('Could not store the exercise photo.');
+    }
+
+    return [
+        'photo_filename' => $filename,
+        'photo_mime_type' => $photo['mime_type'],
+    ];
+}
+
+function exerciseDeleteStoredPhoto(?string $filename): bool
+{
+    $path = exercisePhotoStoragePath($filename);
+    if ($path === null || !is_file($path)) {
+        return true;
+    }
+
+    return @unlink($path);
+}
+
+function exerciseRemovePhotoRequested(array $source): bool
+{
+    return isset($source['remove_photo']) && $source['remove_photo'] === '1';
+}
+
 function exerciseFiltersFromRequest(array $source): array
 {
     $filters = [

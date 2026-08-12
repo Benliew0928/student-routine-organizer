@@ -29,6 +29,7 @@ try {
         exit;
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'journal view');
     $pageError = 'This journal entry is unavailable right now. Please check the database setup.';
 }
 

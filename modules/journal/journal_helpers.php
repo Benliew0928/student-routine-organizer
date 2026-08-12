@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../../includes/error_handler.php';
+
 function journalTemplateOptions(): array
 {
     return [
@@ -98,8 +100,8 @@ function journalValidateData(array $data): array
 
     if ($content === '') {
         $errors[] = 'Please write some journal content.';
-    } elseif (mb_strlen($content) > 500000) {
-        $errors[] = 'Journal content exceeds max allowed size.';
+    } elseif (mb_strlen($content) > 10000) {
+        $errors[] = 'Journal content must be 10,000 characters or fewer.';
     }
 
     if ($mood === '') {
@@ -130,6 +132,10 @@ function journalValidateDraftData(array $data): array
 
     if (mb_strlen($title) > 120) {
         $errors[] = 'Draft title must be 120 characters or fewer.';
+    }
+
+    if (mb_strlen($content) > 10000) {
+        $errors[] = 'Draft content must be 10,000 characters or fewer.';
     }
 
     if (mb_strlen($mood) > 50) {
@@ -390,6 +396,7 @@ function journalPublishDraft(
 
         return $journalId;
     } catch (Throwable $exception) {
+        logApplicationException($exception, 'journal publication transaction');
         $connection->rollback();
         throw $exception;
     }

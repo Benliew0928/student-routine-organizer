@@ -13,11 +13,19 @@ if (isLoggedIn()) {
     redirectAfterLogin(currentUserRole() ?? 'student');
 }
 
+if (sessionAccessState() === 'expired') {
+    expireAuthenticatedSession();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fullName = cleanInput($_POST['full_name'] ?? '');
     $email = cleanInput($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
+
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+        $errors[] = 'Your session token expired. Please try again.';
+    }
 
     if ($fullName === '') {
         $errors[] = 'Please enter your full name.';
@@ -60,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
         } catch (Throwable $exception) {
+            logApplicationException($exception, 'registration');
             $errors[] = 'Registration is unavailable right now. Please try again later.';
         }
     }
@@ -81,6 +90,7 @@ require __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
     <form method="post" action="<?= BASE_URL; ?>/register.php">
+        <?= csrfInput(); ?>
         <label for="full_name">Full Name</label>
         <input id="full_name" name="full_name" type="text" value="<?= escapeOutput($fullName); ?>" required>
 

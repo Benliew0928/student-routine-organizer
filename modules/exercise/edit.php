@@ -44,27 +44,59 @@ try {
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = exerciseDataFromRequest($_POST);
+        $photoUpload = exercisePhotoUploadFromRequest($_FILES);
+        $removePhoto = exerciseRemovePhotoRequested($_POST);
 
         if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
             $errors[] = 'Your session token expired. Please try again.';
         }
 
         $errors = array_merge($errors, exerciseValidateData($data));
+        $errors = array_merge($errors, $photoUpload['errors']);
 
         if (!$errors) {
             $duration = (int) $data['duration_minutes'];
             $calories = (int) $data['calories_burned'];
-            $stmt = $connection->prepare('UPDATE exercise_records SET activity_type = ?, duration_minutes = ?, calories_burned = ?, exercise_date = ? WHERE exercise_id = ? AND user_id = ?');
-            $stmt->bind_param(
-                'siisii',
-                $data['activity_type'],
-                $duration,
-                $calories,
-                $data['exercise_date'],
-                $exerciseId,
-                $userId
-            );
-            $stmt->execute();
+            $storedPhoto = null;
+
+            try {
+                if ($photoUpload['photo'] !== null) {
+                    $storedPhoto = exerciseStoreUploadedPhoto($photoUpload['photo']);
+                }
+
+                if ($storedPhoto !== null) {
+                    $stmt = $connection->prepare('UPDATE exercise_records SET activity_type = ?, duration_minutes = ?, calories_burned = ?, exercise_date = ?, photo_filename = ?, photo_mime_type = ? WHERE exercise_id = ? AND user_id = ?');
+                    $stmt->bind_param(
+                        'siisssii',
+                        $data['activity_type'],
+                        $duration,
+                        $calories,
+                        $data['exercise_date'],
+                        $storedPhoto['photo_filename'],
+                        $storedPhoto['photo_mime_type'],
+                        $exerciseId,
+                        $userId
+                    );
+                } elseif ($removePhoto && exerciseHasPhoto($exercise)) {
+                    $stmt = $connection->prepare('UPDATE exercise_records SET activity_type = ?, duration_minutes = ?, calories_burned = ?, exercise_date = ?, photo_filename = NULL, photo_mime_type = NULL WHERE exercise_id = ? AND user_id = ?');
+                    $stmt->bind_param('siisii', $data['activity_type'], $duration, $calories, $data['exercise_date'], $exerciseId, $userId);
+                } else {
+                    $stmt = $connection->prepare('UPDATE exercise_records SET activity_type = ?, duration_minutes = ?, calories_burned = ?, exercise_date = ? WHERE exercise_id = ? AND user_id = ?');
+                    $stmt->bind_param('siisii', $data['activity_type'], $duration, $calories, $data['exercise_date'], $exerciseId, $userId);
+                }
+                $stmt->execute();
+
+                if (($storedPhoto !== null || ($removePhoto && exerciseHasPhoto($exercise)))
+                    && !exerciseDeleteStoredPhoto($exercise['photo_filename'] ?? null)) {
+                    logApplicationException(new RuntimeException('Could not remove replaced exercise photo.'), 'exercise photo replacement');
+                }
+            } catch (Throwable $exception) {
+                if ($storedPhoto !== null && !exerciseDeleteStoredPhoto($storedPhoto['photo_filename'])) {
+                    logApplicationException(new RuntimeException('Could not remove a failed exercise photo upload.'), 'exercise photo cleanup');
+                }
+
+                throw $exception;
+            }
 
             setFlash('success', 'Exercise record updated successfully.');
             header('Location: ' . BASE_URL . '/modules/exercise/index.php?view=workouts');
@@ -72,6 +104,7 @@ try {
         }
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'exercise edit');
     $pageError = 'Exercise editing is unavailable right now. Please check the database setup.';
 }
 
@@ -100,7 +133,7 @@ require __DIR__ . '/../../includes/header.php';
         </div>
     <?php endif; ?>
 
-    <form method="post" action="<?= BASE_URL; ?>/modules/exercise/edit.php?id=<?= (int) $exerciseId; ?>">
+    <form method="post" action="<?= BASE_URL; ?>/modules/exercise/edit.php?id=<?= (int) $exerciseId; ?>" enctype="multipart/form-data">
         <?= csrfInput(); ?>
 
         <label for="activity_type">Activity Type</label>
@@ -123,6 +156,23 @@ require __DIR__ . '/../../includes/header.php';
 
         <label for="exercise_date">Exercise Date</label>
         <input id="exercise_date" name="exercise_date" type="date" value="<?= escapeOutput($data['exercise_date']); ?>" required>
+
+        <?php if (exerciseHasPhoto($exercise)): ?>
+            <div class="exercise-photo-preview">
+                <img src="<?= escapeOutput(exercisePhotoUrl((int) $exerciseId)); ?>" alt="Current photo for <?= escapeOutput($exercise['activity_type']); ?>">
+                <div>
+                    <strong>Current exercise photo</strong>
+                    <label class="checkbox-line">
+                        <input name="remove_photo" type="checkbox" value="1">
+                        Remove current photo
+                    </label>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <label for="exercise_photo">Replace Exercise Photo <span class="muted">(optional)</span></label>
+        <input id="exercise_photo" name="exercise_photo" type="file" accept="image/jpeg,image/png">
+        <p class="field-hint">JPEG or PNG only, up to 2 MB. A new upload replaces the current photo.</p>
 
         <div class="button-row">
             <button class="button primary" type="submit">Save Changes</button>

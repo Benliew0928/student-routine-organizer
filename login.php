@@ -12,10 +12,18 @@ if (isLoggedIn()) {
     redirectAfterLogin(currentUserRole() ?? 'student');
 }
 
+if (sessionAccessState() === 'expired') {
+    expireAuthenticatedSession();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = cleanInput($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $rememberEmail = isset($_POST['remember_email']);
+
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+        $errors[] = 'Your session token expired. Please try again.';
+    }
 
     if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Please enter a valid email address.';
@@ -38,11 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_id'] = (int) $user['user_id'];
                 $_SESSION['full_name'] = $user['full_name'];
                 $_SESSION['role'] = $user['role'];
+                unset($_SESSION['csrf_token']);
+                refreshAuthenticatedSession();
 
                 if ($rememberEmail) {
-                    setcookie('remember_email', $email, time() + (60 * 60 * 24 * 30), BASE_URL, '', false, true);
+                    setcookie('remember_email', $email, applicationCookieOptions(time() + (60 * 60 * 24 * 30)));
                 } else {
-                    setcookie('remember_email', '', time() - 3600, BASE_URL, '', false, true);
+                    setcookie('remember_email', '', applicationCookieOptions(time() - 3600));
                 }
 
                 setFlash('success', 'Welcome back, ' . $user['full_name'] . '.');
@@ -51,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $errors[] = 'Invalid email or password.';
         } catch (Throwable $exception) {
+            logApplicationException($exception, 'login');
             $errors[] = 'Login is unavailable right now. Please try again later.';
         }
     }
@@ -72,6 +83,7 @@ require __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
     <form method="post" action="<?= BASE_URL; ?>/login.php">
+        <?= csrfInput(); ?>
         <label for="email">Email</label>
         <input id="email" name="email" type="email" autocomplete="email" value="<?= escapeOutput($email); ?>" required>
 

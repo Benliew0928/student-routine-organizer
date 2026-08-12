@@ -34,6 +34,7 @@ try {
         }
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'habit create');
     $pageError = 'Quest creation is unavailable right now. Please check the database setup.';
 }
 

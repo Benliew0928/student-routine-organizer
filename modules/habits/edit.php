@@ -30,7 +30,10 @@ try {
             setFlash('success', 'Quest blueprint updated.'); header('Location: ' . BASE_URL . '/modules/habits/manage.php'); exit;
         }
     }
-} catch (Throwable $exception) { $pageError = 'Quest editing is unavailable right now. Please check the database setup.'; }
+} catch (Throwable $exception) {
+    logApplicationException($exception, 'habit edit');
+    $pageError = 'Quest editing is unavailable right now. Please check the database setup.';
+}
 
 $pageTitle = 'Edit Quest'; require __DIR__ . '/../../includes/header.php';
 ?>

@@ -40,11 +40,16 @@ try {
         $stmt->bind_param('ii', $exerciseId, $userId);
         $stmt->execute();
 
+        if (!exerciseDeleteStoredPhoto($exercise['photo_filename'] ?? null)) {
+            logApplicationException(new RuntimeException('Could not remove deleted exercise photo.'), 'exercise photo delete');
+        }
+
         setFlash('success', 'Exercise record deleted successfully.');
         header('Location: ' . BASE_URL . '/modules/exercise/index.php');
         exit;
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'exercise delete');
     $pageError = 'Exercise deletion is unavailable right now. Please check the database setup.';
 }
 
@@ -77,6 +82,12 @@ require __DIR__ . '/../../includes/header.php';
                 <dt>Date</dt>
                 <dd><?= escapeOutput($exercise['exercise_date']); ?></dd>
             </div>
+            <?php if (exerciseHasPhoto($exercise)): ?>
+                <div>
+                    <dt>Photo</dt>
+                    <dd>Attached exercise photo</dd>
+                </div>
+            <?php endif; ?>
         </dl>
 
         <form method="post" action="<?= BASE_URL; ?>/modules/exercise/delete.php?id=<?= (int) $exerciseId; ?>">

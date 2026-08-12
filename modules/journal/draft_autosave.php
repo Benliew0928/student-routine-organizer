@@ -20,9 +20,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     journalDraftJson(405, ['success' => false, 'message' => 'Method not allowed.']);
 }
 
+ $accessState = sessionAccessState();
 if (!isLoggedIn()) {
+    if ($accessState === 'expired') {
+        expireAuthenticatedSession();
+        journalDraftJson(401, ['success' => false, 'message' => 'Your session expired after 30 minutes of inactivity. Please log in again.']);
+    }
+
     journalDraftJson(401, ['success' => false, 'message' => 'Please log in again.']);
 }
+
+refreshAuthenticatedSession();
 
 if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
     journalDraftJson(403, [
@@ -101,6 +109,7 @@ try {
         'saved_label' => 'Draft saved at ' . date('g:i A', $savedTimestamp),
     ]);
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'journal draft autosave');
     journalDraftJson(500, [
         'success' => false,
         'message' => 'Could not save the draft. Please retry.',

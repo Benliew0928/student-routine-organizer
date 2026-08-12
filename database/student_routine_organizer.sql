@@ -39,6 +39,8 @@ CREATE TABLE exercise_records (
   calories_burned INT NOT NULL,
   exercise_date DATE NOT NULL,
   notes VARCHAR(255),
+  photo_filename VARCHAR(255) NULL,
+  photo_mime_type VARCHAR(20) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_exercise_user
@@ -68,6 +70,12 @@ CREATE TABLE journal_entries (
   content TEXT NOT NULL,
   mood_status VARCHAR(50) NOT NULL,
   entry_date DATE NOT NULL,
+  subject VARCHAR(50) NOT NULL DEFAULT 'General',
+  weather VARCHAR(50) NOT NULL DEFAULT '☀️ Sunny',
+  tags VARCHAR(255) NOT NULL DEFAULT '',
+  paper_style VARCHAR(50) NOT NULL DEFAULT 'lined',
+  starred TINYINT(1) NOT NULL DEFAULT 0,
+  canvas_json MEDIUMTEXT DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_journal_user
@@ -85,6 +93,12 @@ CREATE TABLE journal_drafts (
   mood_status VARCHAR(50) NOT NULL DEFAULT '',
   entry_date DATE NULL,
   template_key VARCHAR(32) NOT NULL DEFAULT 'blank',
+  subject VARCHAR(50) NOT NULL DEFAULT 'General',
+  weather VARCHAR(50) NOT NULL DEFAULT '☀️ Sunny',
+  tags VARCHAR(255) NOT NULL DEFAULT '',
+  paper_style VARCHAR(50) NOT NULL DEFAULT 'lined',
+  starred TINYINT(1) NOT NULL DEFAULT 0,
+  canvas_json MEDIUMTEXT DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_journal_draft_user
@@ -228,7 +242,7 @@ UNION ALL SELECT user_id, 'June goals', 'I want to make steady progress with rev
 UNION ALL SELECT user_id, 'Small wins', 'I completed my exercise plan and reviewed the difficult topic from class.', 'Proud', '2026-06-18' FROM users WHERE email = 'student@example.com';
 
 INSERT INTO journal_drafts (user_id, title, content, mood_status, entry_date, template_key)
-SELECT user_id, 'Weekend reflection', 'This draft is ready to be finished after I review the week.', 'Thoughtful', '2026-07-26', 'reflection' FROM users WHERE email = 'student@example.com';
+SELECT user_id, 'Weekend reflection', 'This draft is ready to be finished after I review the week.', 'Thoughtful', '2026-07-26', 'daily_reflection' FROM users WHERE email = 'student@example.com';
 
 INSERT INTO money_transactions (user_id, amount, category, description, transaction_type, transaction_date)
 SELECT user_id, 4000.00, 'Salary', 'Monthly part-time salary.', 'income', '2026-07-01' FROM users WHERE email = 'student@example.com'

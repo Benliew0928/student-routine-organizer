@@ -61,6 +61,7 @@ try {
     $summary['habit_completed'] = (int) $habit['completed_count'];
     $summary['habit_percentage'] = $summary['habit_count'] > 0 ? (int) round(($summary['habit_completed'] / $summary['habit_count']) * 100) : 0;
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'dashboard');
     $dashboardError = 'Dashboard summaries are unavailable right now.';
 }
 

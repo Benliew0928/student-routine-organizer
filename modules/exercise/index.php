@@ -116,7 +116,7 @@ try {
     }
 
     $filterQuery = exerciseFilterQuery($filters, $userId);
-    $sql = 'SELECT exercise_id, activity_type, duration_minutes, calories_burned, exercise_date FROM exercise_records WHERE ' . $filterQuery['where'] . ' ORDER BY ' . exerciseOrderBy($filters['sort']);
+    $sql = 'SELECT exercise_id, activity_type, duration_minutes, calories_burned, exercise_date, photo_filename, photo_mime_type FROM exercise_records WHERE ' . $filterQuery['where'] . ' ORDER BY ' . exerciseOrderBy($filters['sort']);
     $stmt = $connection->prepare($sql);
     $params = $filterQuery['params'];
     exerciseBindParams($stmt, $filterQuery['types'], $params);
@@ -162,6 +162,7 @@ try {
         exit;
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'exercise index');
     $pageError = 'Exercise records are unavailable right now. Please check the database setup.';
 }
 
@@ -567,6 +568,11 @@ require __DIR__ . '/../../includes/header.php';
                             <span class="exercise-activity"><?= exerciseActivityIconMarkup((string) $record['activity_type']); ?><?= escapeOutput($record['activity_type']); ?></span>
                             <span class="status-pill"><i class="bi bi-calendar-event" aria-hidden="true"></i><?= escapeOutput($record['exercise_date']); ?></span>
                         </div>
+                        <?php if (exerciseHasPhoto($record)): ?>
+                            <a class="exercise-card-photo" href="<?= escapeOutput(exercisePhotoUrl((int) $record['exercise_id'])); ?>" target="_blank" rel="noopener">
+                                <img src="<?= escapeOutput(exercisePhotoUrl((int) $record['exercise_id'])); ?>" alt="Exercise photo for <?= escapeOutput($record['activity_type']); ?>">
+                            </a>
+                        <?php endif; ?>
                         <div class="exercise-stat-row">
                             <div class="exercise-stat-adjust" aria-label="Adjust duration for <?= escapeOutput($record['activity_type']); ?>">
                                 <i class="bi bi-stopwatch" aria-hidden="true"></i>

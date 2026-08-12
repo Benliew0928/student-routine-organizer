@@ -134,6 +134,7 @@ try {
         }
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'journal create');
     $pageError = 'Journal entry creation is unavailable right now. Please check the database setup.';
 }
 

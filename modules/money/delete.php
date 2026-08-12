@@ -45,6 +45,7 @@ try {
         exit;
     }
 } catch (Throwable $exception) {
+    logApplicationException($exception, 'money delete');
     $pageError = 'Transaction deletion is unavailable right now. Please check the database setup.';
 }
 
