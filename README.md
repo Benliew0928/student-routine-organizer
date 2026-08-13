@@ -26,11 +26,10 @@ Database Import:
 3. Import database/student_routine_organizer.sql.
 
 Existing Database Upgrade:
-- To retain existing local records while adding the Journal editor and Money savings-goal tables, run `C:\xampp\php\php.exe database\run_migration.php` from the project folder. This script is CLI-only and cannot be run through Apache.
+- Import `database/student_routine_organizer.sql`, which is the maintained 11-table schema. Historical migration scripts and the obsolete draft schema are retained under `archive/2026-08-13-cleanup/database/` for recovery only.
 
 Habit Tracker Database:
-- The Twilight Conservatory redesign uses a fresh `habits` + `habit_logs` model.
-- Re-import `database/student_routine_organizer.sql` to use the new tracker. The old single-record habit table is intentionally not migrated.
+- The Twilight Conservatory redesign uses the current `habits` + `habit_logs` model contained in `database/student_routine_organizer.sql`.
 
 Sample Student Account:
 Email: student@example.com
@@ -60,3 +59,7 @@ Implemented So Far:
 - Money Tracker CRUD, summaries, filters, CSV export, and manual savings goals
 - Twilight Conservatory Habit Tracker
 - Reusable quest blueprints, daily quest logs, realm progress, Momentum Trail, archive/restore, and CSRF-protected forms
+
+Archived Development Material:
+- Automated tests, historical planning files, temporary report-generation artifacts and obsolete schema/migration files were moved to `archive/2026-08-13-cleanup/`.
+- See `archive/2026-08-13-cleanup/ARCHIVE_MANIFEST.md` before restoring anything.
