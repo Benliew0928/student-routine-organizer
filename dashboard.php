@@ -3,7 +3,7 @@ require __DIR__ . '/config/app.php';
 require __DIR__ . '/config/database.php';
 require __DIR__ . '/includes/auth.php';
 
-requireLogin();
+requireStudent();
 
 $summary = [
     'exercise_count' => 0,

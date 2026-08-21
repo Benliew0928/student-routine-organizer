@@ -138,3 +138,19 @@ function requireAdmin(): void
         exit;
     }
 }
+
+function requireStudent(): void
+{
+    requireLogin();
+
+    // Keep administrators on their own dashboard if they follow a student link.
+    if (currentUserRole() === 'admin') {
+        redirectAfterLogin('admin');
+    }
+
+    if (currentUserRole() !== 'student') {
+        setFlash('error', 'Student access is required.');
+        header('Location: ' . BASE_URL . '/login.php');
+        exit;
+    }
+}
