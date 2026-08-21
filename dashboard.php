@@ -18,6 +18,7 @@ $summary = [
     'habit_completed' => 0,
     'habit_percentage' => 0,
 ];
+$todayHabitsByRealm = [];
 $dashboardError = null;
 $userId = (int) $_SESSION['user_id'];
 
@@ -54,13 +55,33 @@ try {
     $summary['expense_total'] = (float) $money['expense_total'];
     $summary['money_balance'] = $summary['income_total'] - $summary['expense_total'];
 
-    $stmt = $connection->prepare("SELECT COUNT(*) AS record_count, COALESCE(SUM(CASE WHEN l.completion_status = 'completed' THEN 1 ELSE 0 END), 0) AS completed_count FROM habit_logs l INNER JOIN habits h ON h.habit_id = l.habit_id WHERE l.user_id = ? AND h.is_active = 1 AND l.deleted_at IS NULL");
+    $stmt = $connection->prepare("SELECT COUNT(*) AS record_count, COALESCE(SUM(CASE WHEN l.completion_status = 'completed' THEN 1 ELSE 0 END), 0) AS completed_count FROM habit_logs l INNER JOIN habits h ON h.habit_id = l.habit_id WHERE l.user_id = ? AND h.is_active = 1 AND l.deleted_at IS NULL AND l.scheduled_date = CURDATE()");
     $stmt->bind_param('i', $userId);
     $stmt->execute();
     $habit = $stmt->get_result()->fetch_assoc();
     $summary['habit_count'] = (int) $habit['record_count'];
     $summary['habit_completed'] = (int) $habit['completed_count'];
     $summary['habit_percentage'] = $summary['habit_count'] > 0 ? (int) round(($summary['habit_completed'] / $summary['habit_count']) * 100) : 0;
+
+    // Today's habit progress by realm (for the Habit Progress overview card)
+    $habitRealmLabels = ['focus' => 'Focus Garden', 'energy' => 'Energy Grove', 'mind' => 'Mind Clearing', 'life_admin' => 'Life Garden'];
+    $habitRealmColors = ['focus' => 'fill-habits', 'energy' => 'fill-exercise', 'mind' => 'fill-journal', 'life_admin' => 'fill-money'];
+    $todayHabitsByRealm = [];
+    $stmt = $connection->prepare("SELECT h.realm, COUNT(l.log_id) AS total, COALESCE(SUM(CASE WHEN l.completion_status = 'completed' THEN 1 ELSE 0 END), 0) AS completed FROM habit_logs l INNER JOIN habits h ON h.habit_id = l.habit_id WHERE l.user_id = ? AND h.is_active = 1 AND l.deleted_at IS NULL AND l.scheduled_date = CURDATE() GROUP BY h.realm");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+        $realm = $row['realm'];
+        $total = (int) $row['total'];
+        $completed = (int) $row['completed'];
+        $todayHabitsByRealm[$realm] = [
+            'label'     => $habitRealmLabels[$realm] ?? ucfirst($realm),
+            'color'     => $habitRealmColors[$realm] ?? 'fill-habits',
+            'total'     => $total,
+            'completed' => $completed,
+            'pct'       => $total > 0 ? (int) round($completed / $total * 100) : 0,
+        ];
+    }
 
     // Today's Spending query
     $todaySpending = [
@@ -87,14 +108,7 @@ try {
         $todaySpending['Total'] += $amt;
         $hasTodaySpending = true;
     }
-    if (!$hasTodaySpending) {
-        $todaySpending = [
-            'Food' => 24.50,
-            'Transport' => 8.00,
-            'Other' => 15.00,
-            'Total' => 47.50
-        ];
-    }
+    // No fallback — zero values are the correct empty state for new accounts
 
     // Weekly Activity query (last 7 days of exercise)
     $weeklyActivity = [
@@ -117,12 +131,7 @@ try {
             $hasWeeklyActivity = true;
         }
     }
-    if (!$hasWeeklyActivity) {
-        $weeklyActivity = [
-            'Monday' => 45, 'Tuesday' => 30, 'Wednesday' => 60, 'Thursday' => 0,
-            'Friday' => 40, 'Saturday' => 90, 'Sunday' => 20
-        ];
-    }
+    // No fallback — all-zero bars are the correct empty state for new accounts
 
     // Recent Activity query
     $activities = [];
@@ -180,30 +189,7 @@ try {
         return strcmp($b['date'], $a['date']);
     });
     
-    if (empty($activities)) {
-        $activities = [
-            [
-                'type' => 'exercise',
-                'text' => 'Completed a workout: Running for 45 mins',
-                'date' => date('Y-m-d', strtotime('today'))
-            ],
-            [
-                'type' => 'journal',
-                'text' => 'Added a journal entry: "Reflection on Midterms" (Feeling Grateful)',
-                'date' => date('Y-m-d', strtotime('yesterday'))
-            ],
-            [
-                'type' => 'money',
-                'text' => 'Added an expense: RM 24.50 for Dinner (Food)',
-                'date' => date('Y-m-d', strtotime('yesterday'))
-            ],
-            [
-                'type' => 'habit',
-                'text' => 'Completed a habit: Reading 30 mins',
-                'date' => date('Y-m-d', strtotime('today'))
-            ]
-        ];
-    }
+    // $activities stays empty for new accounts — the template will show a friendly empty state
 
 } catch (Throwable $exception) {
     logApplicationException($exception, 'dashboard');
@@ -753,7 +739,7 @@ require __DIR__ . '/includes/header.php';
     </div>
 
     <div class="dashboard-welcome-heading">
-        <h1>Good afternoon, <?= escapeOutput(currentUserName()); ?>.</h1>
+        <h1><?= (int)date('H') < 12 ? 'Good morning' : ((int)date('H') < 17 ? 'Good afternoon' : 'Good evening'); ?>, <?= escapeOutput(currentUserName()); ?>.</h1>
         <p>Here's your routine overview for today.</p>
     </div>
 
@@ -768,20 +754,11 @@ require __DIR__ . '/includes/header.php';
             <div class="card-icon-tag"><i class="bi bi-activity"></i></div>
             <span class="card-label">Exercise</span>
             <strong>
-                <?php if ($summary['exercise_count'] > 0): ?>
-                    <?= number_format($summary['exercise_count']); ?> records
-                <?php else: ?>
-                    8 exercise records
-                <?php endif; ?>
+                <?= number_format($summary['exercise_count']); ?> <?= $summary['exercise_count'] === 1 ? 'record' : 'records'; ?>
             </strong>
             <div class="card-details">
-                <?php if ($summary['exercise_count'] > 0): ?>
-                    <span><?= number_format($summary['exercise_minutes']); ?> minutes</span>
-                    <span><?= number_format($summary['exercise_calories']); ?> calories</span>
-                <?php else: ?>
-                    <span>310 minutes</span>
-                    <span>2,390 calories</span>
-                <?php endif; ?>
+                <span><?= number_format($summary['exercise_minutes']); ?> minutes</span>
+                <span><?= number_format($summary['exercise_calories']); ?> calories</span>
             </div>
         </article>
 
@@ -790,14 +767,10 @@ require __DIR__ . '/includes/header.php';
             <div class="card-icon-tag"><i class="bi bi-journal-text"></i></div>
             <span class="card-label">Journal</span>
             <strong>
-                <?php if ($summary['journal_count'] > 0): ?>
-                    <?= number_format($summary['journal_count']); ?> journal entries
-                <?php else: ?>
-                    5 journal entries
-                <?php endif; ?>
+                <?= number_format($summary['journal_count']); ?> <?= $summary['journal_count'] === 1 ? 'journal entry' : 'journal entries'; ?>
             </strong>
             <div class="card-details">
-                <span>Latest mood: <?= escapeOutput($summary['journal_count'] > 0 ? $summary['latest_mood'] : 'Grateful'); ?></span>
+                <span>Latest mood: <?= escapeOutput($summary['latest_mood']); ?></span>
             </div>
         </article>
 
@@ -806,38 +779,25 @@ require __DIR__ . '/includes/header.php';
             <div class="card-icon-tag"><i class="bi bi-piggy-bank"></i></div>
             <span class="card-label">Money</span>
             <strong>
-                <?php if ($summary['income_total'] > 0 || $summary['expense_total'] > 0): ?>
-                    RM <?= number_format($summary['money_balance'], 2); ?>
-                <?php else: ?>
-                    RM 9,531.90
-                <?php endif; ?>
+                RM <?= number_format($summary['money_balance'], 2); ?>
             </strong>
             <div class="card-details">
-                <?php if ($summary['income_total'] > 0 || $summary['expense_total'] > 0): ?>
-                    <span class="card-detail-item"><span>Income:</span> <span>RM <?= number_format($summary['income_total'], 2); ?></span></span>
-                    <span class="card-detail-item"><span>Expenses:</span> <span>RM <?= number_format($summary['expense_total'], 2); ?></span></span>
-                <?php else: ?>
-                    <span class="card-detail-item"><span>Income:</span> <span>RM 10,080.00</span></span>
-                    <span class="card-detail-item"><span>Expenses:</span> <span>RM 548.10</span></span>
-                <?php endif; ?>
+                <span class="card-detail-item"><span>Income:</span> <span>RM <?= number_format($summary['income_total'], 2); ?></span></span>
+                <span class="card-detail-item"><span>Expenses:</span> <span>RM <?= number_format($summary['expense_total'], 2); ?></span></span>
             </div>
         </article>
 
         <!-- Habits Card -->
         <article class="dashboard-card card-habits">
             <div class="card-icon-tag"><i class="bi bi-check2-circle"></i></div>
-            <span class="card-label">Habits</span>
+            <span class="card-label">Habits Today</span>
             <strong>
-                <?php if ($summary['habit_count'] > 0): ?>
-                    <?= number_format($summary['habit_completed']); ?> / <?= number_format($summary['habit_count']); ?> completed
-                <?php else: ?>
-                    9 / 23 completed
-                <?php endif; ?>
+                <?= number_format($summary['habit_completed']); ?> / <?= number_format($summary['habit_count']); ?> completed
             </strong>
             <div class="progress-bar-container" style="margin: 6px 0;">
-                <div class="progress-bar-fill fill-habits" style="width: <?= $summary['habit_count'] > 0 ? $summary['habit_percentage'] : 39; ?>%;"></div>
+                <div class="progress-bar-fill fill-habits" style="width: <?= $summary['habit_percentage']; ?>%;"></div>
             </div>
-            <p class="card-details"><?= $summary['habit_count'] > 0 ? $summary['habit_percentage'] : 39; ?>% completion rate</p>
+            <p class="card-details"><?= $summary['habit_percentage']; ?>% completion rate today</p>
         </article>
     </div>
 
@@ -845,69 +805,50 @@ require __DIR__ . '/includes/header.php';
     <div>
         <h2 class="dashboard-section-title"><i class="bi bi-calendar2-event"></i> Today's Overview</h2>
         <div class="dashboard-overview-grid">
-            <!-- Today's Tasks -->
+            <!-- Today's Quick Actions -->
             <div class="overview-card">
-                <h3 class="overview-card-title">Today's Tasks</h3>
+                <h3 class="overview-card-title">Today's Quick Actions</h3>
                 <div class="task-list">
                     <label class="task-item">
-                        <input type="checkbox" class="task-checkbox" checked>
-                        <span>Complete exercise</span>
+                        <input type="checkbox" class="task-checkbox" <?= $summary['exercise_count'] > 0 ? 'checked' : ''; ?>>
+                        <span><?= $summary['exercise_count'] > 0 ? 'Logged exercise today' : 'Log today\'s exercise'; ?></span>
                     </label>
                     <label class="task-item">
-                        <input type="checkbox" class="task-checkbox" checked>
-                        <span>Write journal entry</span>
+                        <input type="checkbox" class="task-checkbox" <?= $summary['journal_count'] > 0 ? 'checked' : ''; ?>>
+                        <span><?= $summary['journal_count'] > 0 ? 'Wrote a journal entry' : 'Write a journal entry'; ?></span>
                     </label>
                     <label class="task-item">
-                        <input type="checkbox" class="task-checkbox">
-                        <span>Review lecture notes</span>
+                        <input type="checkbox" class="task-checkbox" <?= ($summary['income_total'] > 0 || $summary['expense_total'] > 0) ? 'checked' : ''; ?>>
+                        <span><?= ($summary['income_total'] > 0 || $summary['expense_total'] > 0) ? 'Tracked money today' : 'Track today\'s spending'; ?></span>
                     </label>
                     <label class="task-item">
-                        <input type="checkbox" class="task-checkbox">
-                        <span>Drink 2L water</span>
+                        <input type="checkbox" class="task-checkbox" <?= $summary['habit_completed'] > 0 ? 'checked' : ''; ?>>
+                        <span><?= $summary['habit_completed'] > 0 ? $summary['habit_completed'] . ' habit' . ($summary['habit_completed'] === 1 ? '' : 's') . ' completed today' : 'Complete today\'s habits'; ?></span>
                     </label>
                 </div>
             </div>
 
             <!-- Habit Progress -->
             <div class="overview-card">
-                <h3 class="overview-card-title">Habit Progress</h3>
+                <h3 class="overview-card-title">Habit Progress Today</h3>
                 <div class="habit-progress-list">
-                    <div class="habit-progress-item">
-                        <div class="habit-progress-header">
-                            <span>Exercise</span>
-                            <span>80%</span>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar-fill fill-exercise" style="width: 80%;"></div>
-                        </div>
-                    </div>
-                    <div class="habit-progress-item">
-                        <div class="habit-progress-header">
-                            <span>Study</span>
-                            <span>60%</span>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar-fill fill-habits" style="width: 60%;"></div>
-                        </div>
-                    </div>
-                    <div class="habit-progress-item">
-                        <div class="habit-progress-header">
-                            <span>Reading</span>
-                            <span>50%</span>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar-fill fill-money" style="width: 50%;"></div>
-                        </div>
-                    </div>
-                    <div class="habit-progress-item">
-                        <div class="habit-progress-header">
-                            <span>Sleep</span>
-                            <span>70%</span>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar-fill fill-exercise" style="width: 70%;"></div>
-                        </div>
-                    </div>
+                    <?php if (empty($todayHabitsByRealm)): ?>
+                        <p style="font-family: var(--font-family-2); font-size: 13px; color: var(--color-muted); margin: 0;">
+                            No habits scheduled for today. <a href="<?= BASE_URL; ?>/modules/habits/create.php" style="color: var(--color-primary);">Add your first quest →</a>
+                        </p>
+                    <?php else: ?>
+                        <?php foreach ($todayHabitsByRealm as $realmData): ?>
+                            <div class="habit-progress-item">
+                                <div class="habit-progress-header">
+                                    <span><?= escapeOutput($realmData['label']); ?></span>
+                                    <span><?= $realmData['completed']; ?>/<?= $realmData['total']; ?> &nbsp; <?= $realmData['pct']; ?>%</span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill <?= escapeOutput($realmData['color']); ?>" style="width: <?= $realmData['pct']; ?>%;"></div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -961,25 +902,31 @@ require __DIR__ . '/includes/header.php';
         <h2 class="dashboard-section-title"><i class="bi bi-clock-history"></i> Recent Activity</h2>
         <div class="recent-activity-card">
             <div class="activity-feed">
-                <?php foreach ($activities as $act): ?>
-                    <div class="activity-feed-item">
-                        <div class="activity-icon-badge badge-<?= $act['type'] ?>">
-                            <?php if ($act['type'] === 'exercise'): ?>
-                                <i class="bi bi-activity"></i>
-                            <?php elseif ($act['type'] === 'journal'): ?>
-                                <i class="bi bi-journal-text"></i>
-                            <?php elseif ($act['type'] === 'money'): ?>
-                                <i class="bi bi-piggy-bank"></i>
-                            <?php else: ?>
-                                <i class="bi bi-check2-circle"></i>
-                            <?php endif; ?>
+                <?php if (empty($activities)): ?>
+                    <p style="font-family: var(--font-family-2); font-size: 14px; color: var(--color-muted); margin: 0; padding: var(--spacing-md) 0;">
+                        No activity yet. Start by logging an exercise, writing a journal entry, or completing a habit quest.
+                    </p>
+                <?php else: ?>
+                    <?php foreach ($activities as $act): ?>
+                        <div class="activity-feed-item">
+                            <div class="activity-icon-badge badge-<?= $act['type'] ?>">
+                                <?php if ($act['type'] === 'exercise'): ?>
+                                    <i class="bi bi-activity"></i>
+                                <?php elseif ($act['type'] === 'journal'): ?>
+                                    <i class="bi bi-journal-text"></i>
+                                <?php elseif ($act['type'] === 'money'): ?>
+                                    <i class="bi bi-piggy-bank"></i>
+                                <?php else: ?>
+                                    <i class="bi bi-check2-circle"></i>
+                                <?php endif; ?>
+                            </div>
+                            <div class="activity-info">
+                                <span class="activity-text"><?= $act['text']; ?></span>
+                                <span class="activity-time"><?= date('F j, Y', strtotime($act['date'])); ?></span>
+                            </div>
                         </div>
-                        <div class="activity-info">
-                            <span class="activity-text"><?= $act['text']; ?></span>
-                            <span class="activity-time"><?= date('F j, Y', strtotime($act['date'])); ?></span>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>
